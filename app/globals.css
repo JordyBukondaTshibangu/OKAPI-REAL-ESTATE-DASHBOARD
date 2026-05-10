@@ -1,0 +1,394 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─────────────────────────────────────────────
+   OKAPI REAL ESTATE — Brand Token System
+   Palette:
+     Primary Blue  #1E63B5
+     Deep Navy     #0B1D3A
+     Gold          #D4AF37
+     Charcoal      #1A1F2B
+     Light Gray    #F2F4F7
+   ───────────────────────────────────────────── */
+
+@theme inline {
+  /* Surfaces */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Typography */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-heading);
+
+  /* Semantic tokens → Tailwind */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Brand direct-access tokens */
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-charcoal: var(--brand-charcoal);
+  --color-brand-gray: var(--brand-gray);
+
+  /* Chart — navy → blue spectrum */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Radius scale */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ─── LIGHT MODE ──────────────────────────────
+   Light mode stays clean and professional:
+   white surfaces, navy text, gold & blue accents.
+   ─────────────────────────────────────────── */
+:root {
+  /* Brand primitives */
+  --brand-blue: #1e63b5;
+  --brand-navy: #0b1d3a;
+  --brand-gold: #d4af37;
+  --brand-charcoal: #1a1f2b;
+  --brand-gray: #f2f4f7;
+
+  /* Surfaces */
+  --background: #f2f4f7; /* Light Gray — clean canvas */
+  --foreground: #0b1d3a; /* Deep Navy — primary text  */
+
+  --card: #ffffff;
+  --card-foreground: #0b1d3a;
+
+  --popover: #ffffff;
+  --popover-foreground: #0b1d3a;
+
+  /* Primary action = Primary Blue */
+  --primary: #1e63b5;
+  --primary-foreground: #ffffff;
+
+  /* Secondary = muted navy tint */
+  --secondary: #dde5f0;
+  --secondary-foreground: #0b1d3a;
+
+  /* Muted = light gray tones */
+  --muted: #e8ecf2;
+  --muted-foreground: #4a5568;
+
+  /* Accent = Gold */
+  --accent: #d4af37;
+  --accent-foreground: #0b1d3a;
+
+  --destructive: oklch(0.577 0.245 27.325);
+
+  --border: #c5cfe0;
+  --input: #dde5f0;
+  --ring: #1e63b5;
+
+  /* Charts: navy → blue → gold → light spectrum */
+  --chart-1: #1e63b5; /* Primary Blue */
+  --chart-2: #d4af37; /* Gold         */
+  --chart-3: #0b1d3a; /* Deep Navy    */
+  --chart-4: #2d80e0; /* Sky Blue     */
+  --chart-5: #8fa8c8; /* Steel Blue   */
+
+  --radius: 0.625rem;
+
+  /* Sidebar — navy branded */
+  --sidebar: #0b1d3a;
+  --sidebar-foreground: #f2f4f7;
+  --sidebar-primary: #d4af37;
+  --sidebar-primary-foreground: #0b1d3a;
+  --sidebar-accent: #1e63b5;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #d4af37;
+}
+
+/* ─── DARK MODE ───────────────────────────────
+   Dark mode leans into the Deep Navy richness,
+   gold as the hero accent, blue for actions.
+   ─────────────────────────────────────────── */
+.dark {
+  /* Brand primitives (same) */
+  --brand-blue: #1e63b5;
+  --brand-navy: #0b1d3a;
+  --brand-gold: #d4af37;
+  --brand-charcoal: #1a1f2b;
+  --brand-gray: #f2f4f7;
+
+  /* Surfaces */
+  --background: #0b1d3a; /* Deep Navy — immersive     */
+  --foreground: #f2f4f7; /* Light Gray — crisp text   */
+
+  --card: #1a1f2b; /* Charcoal cards            */
+  --card-foreground: #f2f4f7;
+
+  --popover: #1a1f2b;
+  --popover-foreground: #f2f4f7;
+
+  /* Primary action = Blue (lighter for dark bg) */
+  --primary: #3a82d6;
+  --primary-foreground: #ffffff;
+
+  /* Secondary = dark navy panel */
+  --secondary: #122244;
+  --secondary-foreground: #f2f4f7;
+
+  /* Muted = charcoal tones */
+  --muted: #1a1f2b;
+  --muted-foreground: #8fa8c8;
+
+  /* Accent = Gold — luxury highlight */
+  --accent: #d4af37;
+  --accent-foreground: #0b1d3a;
+
+  --destructive: oklch(0.704 0.191 22.216);
+
+  --border: rgba(255, 255, 255, 0.09);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #d4af37;
+
+  /* Charts */
+  --chart-1: #3a82d6; /* Bright Blue  */
+  --chart-2: #d4af37; /* Gold         */
+  --chart-3: #6aa3e8; /* Sky Blue     */
+  --chart-4: #e8c84a; /* Light Gold   */
+  --chart-5: #8fa8c8; /* Steel Blue   */
+
+  /* Sidebar — charcoal variant */
+  --sidebar: #1a1f2b;
+  --sidebar-foreground: #f2f4f7;
+  --sidebar-primary: #d4af37;
+  --sidebar-primary-foreground: #0b1d3a;
+  --sidebar-accent: #1e63b5;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.07);
+  --sidebar-ring: #d4af37;
+}
+
+/* ─── BASE STYLES ─────────────────────────────
+   Global resets and typographic foundation.
+   ─────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      "kern" 1,
+      "liga" 1,
+      "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+  }
+
+  /* Headings: use brand heading font for a prestige feel */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading, var(--font-sans));
+    @apply text-foreground tracking-tight;
+  }
+
+  /* Gold accent for decorative rules / dividers */
+  hr {
+    border-color: var(--brand-gold);
+    opacity: 0.3;
+  }
+
+  /* Focus ring in brand blue */
+  :focus-visible {
+    outline-color: var(--brand-blue);
+    outline-offset: 2px;
+  }
+
+  /* Selection highlight */
+  ::selection {
+    background-color: color-mix(in srgb, var(--brand-gold) 30%, transparent);
+    color: var(--foreground);
+  }
+
+  /* Scrollbar (Webkit) — subtle navy + gold thumb */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(
+      in srgb,
+      var(--brand-gold) 50%,
+      var(--brand-blue) 50%
+    );
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--brand-gold);
+  }
+}
+
+/* ─── UTILITY LAYER — Brand Helpers ───────────
+   Convenience classes for the Okapi palette.
+   ─────────────────────────────────────────── */
+@layer utilities {
+  /* ── Primary CTA gradient (blue → deeper blue) */
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #2d80e0 0%, #1e63b5 50%, #154f96 100%);
+    color: #ffffff;
+  }
+  .bg-gradient-primary:hover {
+    background: linear-gradient(135deg, #3a8ff0 0%, #2574cc 50%, #1a60b0 100%);
+    box-shadow: 0 4px 16px color-mix(in srgb, #1e63b5 35%, transparent);
+  }
+
+  /* ── Secondary hover gradient (lighter blue tint) */
+  .bg-gradient-secondary {
+    background: linear-gradient(135deg, #dde5f0 0%, #c8d8ee 100%);
+    color: #0b1d3a;
+  }
+
+  /* ── Pressed/active gradient (navy depth) */
+  .bg-gradient-pressed {
+    background: linear-gradient(135deg, #154f96 0%, #0b1d3a 100%);
+    color: #ffffff;
+  }
+
+  /* ── Gold shimmer text — use on hero headings */
+  .text-gold-gradient {
+    background: linear-gradient(
+      135deg,
+      #f0d060 0%,
+      #d4af37 40%,
+      #a07c10 70%,
+      #d4af37 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Luxury card with subtle gold border glow */
+  .card-luxury {
+    background: var(--card);
+    border: 1px solid color-mix(in srgb, var(--brand-gold) 25%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--brand-gold) 10%, transparent),
+      0 4px 24px color-mix(in srgb, var(--brand-navy) 30%, transparent);
+  }
+
+  /* Navy hero section utility */
+  .surface-navy {
+    background-color: var(--brand-navy);
+    color: #f2f4f7;
+  }
+
+  /* Gold accent bar — use as a decorative top border on sections */
+  .border-t-gold {
+    border-top: 2px solid var(--brand-gold);
+  }
+
+  /* Primary blue CTA button base */
+  .btn-primary-brand {
+    background-color: var(--brand-blue);
+    color: #ffffff;
+    border: none;
+    transition:
+      background-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  .btn-primary-brand:hover {
+    background-color: color-mix(in srgb, var(--brand-blue) 85%, #000 15%);
+    box-shadow: 0 4px 16px
+      color-mix(in srgb, var(--brand-blue) 40%, transparent);
+  }
+
+  /* Gold outline button */
+  .btn-gold-outline {
+    background-color: transparent;
+    color: var(--brand-gold);
+    border: 1.5px solid var(--brand-gold);
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+  .btn-gold-outline:hover {
+    background-color: var(--brand-gold);
+    color: var(--brand-navy);
+  }
+
+  /* ── Gradient text (primary blue → gold) */
+  .gradient-text {
+    background: linear-gradient(90deg, var(--brand-blue) 0%, var(--brand-gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Stat card with gold top accent */
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--brand-gold);
+    border-radius: var(--radius);
+    box-shadow: 0 2px 12px color-mix(in srgb, var(--brand-navy) 8%, transparent);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .stat-card:hover {
+    box-shadow: 0 6px 24px color-mix(in srgb, var(--brand-navy) 14%, transparent);
+    transform: translateY(-2px);
+  }
+
+  /* ── Table header row with brand fill */
+  .table-header-brand {
+    background: color-mix(in srgb, var(--brand-navy) 5%, var(--background) 95%);
+    border-bottom: 2px solid color-mix(in srgb, var(--brand-gold) 30%, transparent);
+  }
+}
