@@ -45,7 +45,8 @@ export function useAgent(id: string) {
 export function useCreateAgent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: Partial<Agent>) => api.post("/api/agents", body).then((r) => r.data),
+    mutationFn: (body: Record<string, unknown>) =>
+      api.post("/api/agents", body).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: [AGENTS_KEY] }),
   });
 }

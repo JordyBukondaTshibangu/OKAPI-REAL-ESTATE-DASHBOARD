@@ -45,7 +45,7 @@ export function useProperty(id: string) {
 export function useCreateProperty() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: Partial<Property>) =>
+    mutationFn: (body: Record<string, unknown>) =>
       api.post("/api/properties", body).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: [PROPERTIES_KEY] }),
   });

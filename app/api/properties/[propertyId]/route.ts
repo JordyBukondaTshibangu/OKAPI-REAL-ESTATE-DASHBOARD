@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND = "http://localhost:3000";
+const BACKEND = process.env.NEXT_PUBLIC_URL_BACKEND;
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
+function authHeaders(req: NextRequest): Record<string, string> {
+  const auth = req.headers.get("authorization");
+  return auth ? { "Content-Type": "application/json", Authorization: auth } : { "Content-Type": "application/json" };
+}
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
   const { propertyId } = await params;
   const res = await fetch(`${BACKEND}/properties/${propertyId}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(req),
   });
   const data = await res.json();
   return NextResponse.json(data, { status: res.status });
@@ -16,18 +21,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ prop
   const body = await req.json();
   const res = await fetch(`${BACKEND}/properties/${propertyId}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(req),
     body: JSON.stringify(body),
   });
   const data = await res.json();
   return NextResponse.json(data, { status: res.status });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
   const { propertyId } = await params;
   const res = await fetch(`${BACKEND}/properties/${propertyId}`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(req),
   });
   const data = await res.json().catch(() => ({}));
   return NextResponse.json(data, { status: res.status });

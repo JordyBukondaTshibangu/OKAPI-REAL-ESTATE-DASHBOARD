@@ -1,7 +1,14 @@
 import axios from "axios";
+import { getToken } from "./auth";
 
-// No baseURL — relative paths so requests go through the Next.js API routes
-// which then proxy to http://localhost:3000 server-side.
 export const api = axios.create({
   headers: { "Content-Type": "application/json" },
+});
+
+api.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
