@@ -7,6 +7,7 @@ import {
   Briefcase,
   Globe,
   MoreVertical,
+  Pencil,
   Phone,
   Star,
   Trash2,
@@ -29,6 +30,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useAgent } from "@/lib/queries/agents";
 import DeleteAgentDialog from "../dialogs/delete-agent";
+import EditAgent from "../dialogs/edit-agent/edit-agent";
 
 type Props = { agentId: string };
 
@@ -51,6 +53,7 @@ function AgentDetail({ agentId }: Props) {
   const searchParams = useSearchParams();
   const currentPageQuery = searchParams.get("queryPage");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: agent, isLoading } = useAgent(agentId);
 
@@ -120,6 +123,10 @@ function AgentDetail({ agentId }: Props) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem className="cursor-pointer" onClick={() => setEditOpen(true)}>
+              <Pencil className="size-4 mr-2" />
+              Edit agent
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive hover:text-destructive cursor-pointer"
               onClick={() => setDeleteOpen(true)}
@@ -322,6 +329,8 @@ function AgentDetail({ agentId }: Props) {
         setOpen={setDeleteOpen}
         onClose={() => setDeleteOpen(false)}
       />
+
+      <EditAgent agent={agent} open={editOpen} setOpen={setEditOpen} />
     </div>
   );
 }

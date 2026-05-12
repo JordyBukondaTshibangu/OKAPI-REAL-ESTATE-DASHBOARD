@@ -9,6 +9,7 @@ import {
   Mail,
   MapPin,
   MoreVertical,
+  Pencil,
   Phone,
   Trash2,
   TrendingUp,
@@ -30,6 +31,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useAgency } from "@/lib/queries/agencies";
 import DeleteAgencyDialog from "../dialogs/delete-agency";
+import EditAgency from "../dialogs/edit-agency/edit-agency";
 
 type Props = { agencyId: string };
 
@@ -38,6 +40,7 @@ function AgencyDetail({ agencyId }: Props) {
   const searchParams = useSearchParams();
   const currentPageQuery = searchParams.get("queryPage");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: agency, isLoading } = useAgency(agencyId);
 
@@ -100,6 +103,10 @@ function AgencyDetail({ agencyId }: Props) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem className="cursor-pointer" onClick={() => setEditOpen(true)}>
+              <Pencil className="size-4 mr-2" />
+              Edit agency
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive hover:text-destructive cursor-pointer"
               onClick={() => setDeleteOpen(true)}
@@ -320,6 +327,8 @@ function AgencyDetail({ agencyId }: Props) {
         setOpen={setDeleteOpen}
         onClose={() => setDeleteOpen(false)}
       />
+
+      <EditAgency agency={agency} open={editOpen} setOpen={setEditOpen} />
     </div>
   );
 }

@@ -16,7 +16,7 @@ import SearchInput from "../_common/molecules/search-input";
 import AddAgent from "./dialogs/create-agent/add-agent";
 import DeleteAgentDialog from "./dialogs/delete-agent";
 
-const SEARCH_OPTIONS = ["Name"];
+const SEARCH_OPTIONS = ["Name", "All Fields"];
 
 function Agents() {
   const router = useRouter();

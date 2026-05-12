@@ -182,9 +182,16 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                             <Label>
                               Accent color <span className="text-destructive">*</span>
                             </Label>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                               <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Pick a color" />
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {field.value && (
+                                    <span
+                                      className={cn("inline-block shrink-0 w-3 h-3 rounded-full", field.value)}
+                                    />
+                                  )}
+                                  <SelectValue placeholder="Pick a color" />
+                                </div>
                               </SelectTrigger>
                               <SelectContent>
                                 {ACCENT_CLASSES.map(({ label, value }) => (
@@ -396,6 +403,7 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                   <Button
                     type="submit"
                     className="bg-gradient-primary"
+                    onClick={handleSubmit(onSubmit)}
                     disabled={!formState.isValid || isPending}
                   >
                     Create Agency

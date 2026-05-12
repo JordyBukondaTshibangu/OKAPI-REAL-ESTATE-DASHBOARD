@@ -37,6 +37,32 @@ import { addAgentSchema, AddAgentFormValues } from "./schema";
 const AGENT_TITLES = ["SUPERAGENT", "AGENT EXCLUSIF", "AGENT"] as const;
 const currentYear = new Date().getFullYear();
 
+const PHOTO_GRADIENT_OPTIONS = [
+  { label: "Blue Sky", value: "from-blue-400 to-blue-600" },
+  { label: "Navy Night", value: "from-slate-700 to-slate-900" },
+  { label: "Gold Sunrise", value: "from-amber-400 to-orange-600" },
+  { label: "Purple Dusk", value: "from-purple-400 to-purple-700" },
+  { label: "Emerald", value: "from-emerald-400 to-emerald-700" },
+  { label: "Rose", value: "from-rose-400 to-rose-700" },
+  { label: "Indigo", value: "from-indigo-400 to-indigo-700" },
+  { label: "Teal", value: "from-teal-400 to-teal-600" },
+  { label: "Crimson", value: "from-red-400 to-red-700" },
+  { label: "Charcoal", value: "from-gray-500 to-gray-800" },
+] as const;
+
+const ACCENT_CLASSES = [
+  { label: "Blue", value: "bg-blue-600" },
+  { label: "Green", value: "bg-green-600" },
+  { label: "Purple", value: "bg-purple-600" },
+  { label: "Red", value: "bg-red-600" },
+  { label: "Orange", value: "bg-orange-600" },
+  { label: "Indigo", value: "bg-indigo-600" },
+  { label: "Teal", value: "bg-teal-600" },
+  { label: "Pink", value: "bg-pink-600" },
+  { label: "Yellow", value: "bg-yellow-600" },
+  { label: "Gray", value: "bg-gray-700" },
+] as const;
+
 type AddAgentProps = {
   open: boolean;
   resetCurrentPage?: () => void;
@@ -398,7 +424,36 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
                           <Label>
                             Photo gradient <span className="text-destructive">*</span>
                           </Label>
-                          <Input {...field} placeholder="from-blue-400 to-blue-600" />
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger className="w-full">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {field.value && (
+                                  <span
+                                    className={cn(
+                                      "inline-block shrink-0 w-12 h-4 rounded-sm bg-linear-to-r",
+                                      field.value,
+                                    )}
+                                  />
+                                )}
+                                <SelectValue placeholder="Select a gradient" />
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PHOTO_GRADIENT_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={cn(
+                                        "inline-block w-12 h-4 rounded-sm bg-linear-to-r shrink-0",
+                                        opt.value,
+                                      )}
+                                    />
+                                    {opt.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -413,7 +468,31 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
                             <Label>
                               Agency accent <span className="text-destructive">*</span>
                             </Label>
-                            <Input {...field} placeholder="bg-blue-600" />
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger className="w-full">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {field.value && (
+                                    <span
+                                      className={cn(
+                                        "inline-block shrink-0 w-3 h-3 rounded-full",
+                                        field.value,
+                                      )}
+                                    />
+                                  )}
+                                  <SelectValue placeholder="Select accent" />
+                                </div>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ACCENT_CLASSES.map(({ label, value }) => (
+                                  <SelectItem key={value} value={value}>
+                                    <span
+                                      className={cn("inline-block w-3 h-3 rounded-full mr-2", value)}
+                                    />
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <p className="text-xs text-muted-foreground">Auto-filled from agency</p>
                             <FormMessage />
                           </FormItem>
@@ -481,6 +560,7 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
                   <Button
                     type="submit"
                     className="bg-gradient-primary"
+                    onClick={handleSubmit(onSubmit)}
                     disabled={!formState.isValid || isPending}
                   >
                     Create Agent

@@ -8,8 +8,9 @@ function buildParams(params: QueryParams) {
   const p: Record<string, string> = {};
   if (params.page) p.page = String(params.page);
   if (params.pageSize) p.pageSize = String(params.pageSize);
-  if (params.searchName) p.searchName = params.searchName;
-  if (params.search) p.search = params.search;
+  // Properties backend only has general `search`, no name-specific filter
+  if (params.searchName) p.search = params.searchName;
+  else if (params.search) p.search = params.search;
   if (params.sortBy) p.sortBy = params.sortBy;
   if (params.sortOrder) p.sortOrder = params.sortOrder;
   return p;
@@ -54,7 +55,7 @@ export function useCreateProperty() {
 export function useUpdateProperty() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: Partial<Property> & { id: string }) =>
+    mutationFn: ({ id, ...body }: Record<string, unknown> & { id: string }) =>
       api.put(`/api/properties/${id}`, body).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: [PROPERTIES_KEY] }),
   });

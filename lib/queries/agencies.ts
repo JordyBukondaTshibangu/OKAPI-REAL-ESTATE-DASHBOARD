@@ -8,7 +8,7 @@ function buildParams(params: QueryParams) {
   const p: Record<string, string> = {};
   if (params.page) p.page = String(params.page);
   if (params.pageSize) p.pageSize = String(params.pageSize);
-  if (params.searchName) p.searchName = params.searchName;
+  if (params.searchName) p.name = params.searchName; // backend uses `name` for name-only filter
   if (params.search) p.search = params.search;
   if (params.sortBy) p.sortBy = params.sortBy;
   if (params.sortOrder) p.sortOrder = params.sortOrder;

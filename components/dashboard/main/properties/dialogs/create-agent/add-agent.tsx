@@ -2,11 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import DialogDiscard from "@/components/common/discard";
+import { InfiniteCombobox } from "@/components/common/infinite-combobox";
 import { Loading } from "@/components/common/loading";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,8 +34,82 @@ import { MAX_DESCRIPTION_LENGTH } from "@/constants";
 import { useAgencies } from "@/lib/queries/agencies";
 import { useAgents } from "@/lib/queries/agents";
 import { useCreateProperty } from "@/lib/queries/properties";
+import { Agency } from "@/types";
+import { Agent } from "@/types";
 import { cn } from "@/lib/utils";
 import { AddPropertyFormValues, addPropertySchema } from "./schema";
+
+// ─── Infinite-scroll hooks for dropdowns ─────────────────────────────────────
+
+const DROPDOWN_PAGE_SIZE = 30;
+
+function useInfiniteAgencies() {
+  const [page, setPage] = useState(1);
+  const [items, setItems] = useState<Agency[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const { data, isLoading } = useAgencies({ page, pageSize: DROPDOWN_PAGE_SIZE });
+
+  useEffect(() => {
+    if (!data?.data) return;
+    setItems((prev) =>
+      page === 1 ? data.data : [...prev, ...data.data],
+    );
+    setIsLoadingMore(false);
+  }, [data, page]);
+
+  const totalCount = data?.totalCount ?? 0;
+  const hasMore = items.length < totalCount;
+
+  function loadMore() {
+    if (hasMore && !isLoadingMore) {
+      setIsLoadingMore(true);
+      setPage((p) => p + 1);
+    }
+  }
+
+  return {
+    items,
+    isLoading: isLoading && page === 1,
+    isLoadingMore,
+    hasMore,
+    loadMore,
+  };
+}
+
+function useInfiniteAgents() {
+  const [page, setPage] = useState(1);
+  const [items, setItems] = useState<Agent[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const { data, isLoading } = useAgents({ page, pageSize: DROPDOWN_PAGE_SIZE });
+
+  useEffect(() => {
+    if (!data?.data) return;
+    setItems((prev) =>
+      page === 1 ? data.data : [...prev, ...data.data],
+    );
+    setIsLoadingMore(false);
+  }, [data, page]);
+
+  const totalCount = data?.totalCount ?? 0;
+  const hasMore = items.length < totalCount;
+
+  function loadMore() {
+    if (hasMore && !isLoadingMore) {
+      setIsLoadingMore(true);
+      setPage((p) => p + 1);
+    }
+  }
+
+  return {
+    items,
+    isLoading: isLoading && page === 1,
+    isLoadingMore,
+    hasMore,
+    loadMore,
+  };
+}
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -125,8 +200,8 @@ type AddPropertyProps = {
 
 function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
   const { mutateAsync: createProperty, isPending } = useCreateProperty();
-  const { data: agenciesData, isLoading: agenciesLoading } = useAgencies({ pageSize: 200 });
-  const { data: agentsData, isLoading: agentsLoading } = useAgents({ pageSize: 200 });
+  const agencies = useInfiniteAgencies();
+  const agentsDropdown = useInfiniteAgents();
 
   const [step, setStep] = useState(0);
   const [openDiscard, setOpenDiscard] = useState(false);
@@ -235,8 +310,6 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
     [createProperty, reset, setToggle, resetCurrentPage],
   );
 
-  const agencies = agenciesData?.data ?? [];
-  const agents   = agentsData?.data   ?? [];
 
   const isLastStep = step === STEPS.length - 1;
 
@@ -281,20 +354,17 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       render={({ field }) => (
                         <FormItem>
                           <Label>Agency <span className="text-destructive">*</span></Label>
-                          <Select
-                            disabled={agenciesLoading}
-                            onValueChange={field.onChange}
+                          <InfiniteCombobox
                             value={field.value}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder={agenciesLoading ? "Loading…" : "Select agency"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {agencies.map((a) => (
-                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            onChange={field.onChange}
+                            placeholder="Select agency"
+                            searchPlaceholder="Search agencies…"
+                            items={agencies.items}
+                            isLoading={agencies.isLoading}
+                            isLoadingMore={agencies.isLoadingMore}
+                            hasMore={agencies.hasMore}
+                            onLoadMore={agencies.loadMore}
+                          />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -305,20 +375,17 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       render={({ field }) => (
                         <FormItem>
                           <Label>Agent <span className="text-destructive">*</span></Label>
-                          <Select
-                            disabled={agentsLoading}
-                            onValueChange={field.onChange}
+                          <InfiniteCombobox
                             value={field.value}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder={agentsLoading ? "Loading…" : "Select agent"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {agents.map((a) => (
-                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            onChange={field.onChange}
+                            placeholder="Select agent"
+                            searchPlaceholder="Search agents…"
+                            items={agentsDropdown.items}
+                            isLoading={agentsDropdown.isLoading}
+                            isLoadingMore={agentsDropdown.isLoadingMore}
+                            hasMore={agentsDropdown.hasMore}
+                            onLoadMore={agentsDropdown.loadMore}
+                          />
                           <FormMessage />
                         </FormItem>
                       )}

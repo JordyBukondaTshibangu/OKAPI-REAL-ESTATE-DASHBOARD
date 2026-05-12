@@ -16,7 +16,7 @@ import PropertiesTable, { PropertyDialogType } from "../_common/properties-table
 import AddProperty from "./dialogs/create-agent/add-agent";
 import DeletePropertyDialog from "./dialogs/delete-agent";
 
-const SEARCH_OPTIONS = ["Name"];
+const SEARCH_OPTIONS = ["Name", "All Fields"];
 
 function Properties() {
   const router = useRouter();

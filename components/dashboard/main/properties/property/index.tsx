@@ -8,10 +8,12 @@ import {
   Building2,
   CalendarDays,
   Home,
+  ImageIcon,
   Landmark,
   MapPin,
   MoreVertical,
   Package,
+  Pencil,
   Ruler,
   ShoppingBag,
   Star,
@@ -19,6 +21,7 @@ import {
   TrendingUp,
   User,
   Warehouse,
+  X,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -36,6 +39,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useProperty } from "@/lib/queries/properties";
 import DeletePropertyDialog from "../dialogs/delete-agent";
+import EditProperty from "../dialogs/edit-property/edit-property";
 
 type Props = { propertyId: string };
 
@@ -79,6 +83,8 @@ function PropertyDetail({ propertyId }: Props) {
   const searchParams = useSearchParams();
   const currentPageQuery = searchParams.get("queryPage");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const { data: property, isLoading } = useProperty(propertyId);
 
@@ -136,6 +142,10 @@ function PropertyDetail({ propertyId }: Props) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem className="cursor-pointer" onClick={() => setEditOpen(true)}>
+              <Pencil className="size-4 mr-2" />
+              Edit property
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive hover:text-destructive cursor-pointer"
               onClick={() => setDeleteOpen(true)}
@@ -399,7 +409,45 @@ function PropertyDetail({ propertyId }: Props) {
         </div>
       </div>
 
-      {/* ── Description (PropertyDetail only) ─────────────────── */}
+      {/* ── Gallery ────────────────────────────────────────────── */}
+      {property.gallery && property.gallery.length > 0 && (
+        <Card className="card-luxury">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <ImageIcon className="size-4 text-brand-blue" />
+              Gallery
+              <span className="text-xs font-normal text-muted-foreground">
+                ({property.gallery.length} photo{property.gallery.length !== 1 ? "s" : ""})
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {property.gallery.map((url, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setLightboxUrl(url)}
+                  className="group relative aspect-video rounded-lg overflow-hidden bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt={`Property photo ${idx + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                    onError={(e) => {
+                      (e.currentTarget.parentElement as HTMLElement).style.display = "none";
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-brand-navy/0 group-hover:bg-brand-navy/20 transition-colors" />
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Description ────────────────────────────────────────── */}
       {(property as { description?: string }).description && (
         <Card className="card-luxury">
           <CardHeader className="pb-3">
@@ -413,11 +461,43 @@ function PropertyDetail({ propertyId }: Props) {
         </Card>
       )}
 
+      {/* ── Lightbox ───────────────────────────────────────────── */}
+      {lightboxUrl && (
+        <div
+          role="dialog"
+          aria-modal
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          onClick={() => setLightboxUrl(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxUrl}
+            alt="Full-size property photo"
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            type="button"
+            aria-label="Close lightbox"
+            onClick={() => setLightboxUrl(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+      )}
+
       <DeletePropertyDialog
         property={property}
         open={deleteOpen}
         setOpen={setDeleteOpen}
         onClose={() => setDeleteOpen(false)}
+      />
+
+      <EditProperty
+        property={property}
+        open={editOpen}
+        setOpen={setEditOpen}
       />
     </div>
   );
