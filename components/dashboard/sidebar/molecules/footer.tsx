@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,9 +15,16 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { removeToken } from "@/lib/auth";
 
 export default function SideBarFooter() {
   const { isMobile } = useSidebar();
+  const router = useRouter();
+
+  function handleSignOut() {
+    removeToken();
+    router.push("/login");
+  }
 
   return (
     <SidebarMenu>
@@ -53,7 +61,10 @@ export default function SideBarFooter() {
               <p className="text-xs text-muted-foreground">admin@okapi.re</p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive hover:text-destructive cursor-pointer">
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              className="text-destructive hover:text-destructive cursor-pointer"
+            >
               <LogOut className="mr-2 size-4" />
               Sign out
             </DropdownMenuItem>

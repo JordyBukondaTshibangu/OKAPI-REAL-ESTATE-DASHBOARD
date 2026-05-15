@@ -2,6 +2,7 @@
 
 import {
   Building2,
+  ClipboardList,
   Home,
   LayoutDashboard,
   Users,
@@ -34,6 +35,7 @@ const navMain: NavItem[] = [
   { title: "Agents", url: "/agents", icon: Users },
   { title: "Agencies", url: "/agencies", icon: Building2 },
   { title: "Properties", url: "/properties", icon: Home },
+  { title: "Audit Logs", url: "/audit-logs", icon: ClipboardList },
 ];
 
 export default function SidebarLayout() {

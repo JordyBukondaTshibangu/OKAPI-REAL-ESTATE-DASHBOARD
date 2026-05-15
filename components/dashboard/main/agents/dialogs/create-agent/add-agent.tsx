@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -99,6 +99,20 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
   });
 
   const { reset, handleSubmit, control, watch, formState, setValue } = form;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>("");
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setPhotoPreview(dataUrl);
+      setValue("photo", dataUrl, { shouldValidate: true });
+    };
+    reader.readAsDataURL(file);
+  }
 
   const onSubmit = useCallback(
     async (values: AddAgentFormValues) => {
@@ -113,6 +127,7 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
         await createAgent(payload);
         toast.success("Agent created successfully");
         reset();
+        setPhotoPreview("");
         setToggle(false);
         resetCurrentPage?.();
       } catch {
@@ -132,6 +147,7 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
 
   function handleDiscard() {
     reset();
+    setPhotoPreview("");
     setToggle(false);
     setOpenDiscard(false);
   }
@@ -408,9 +424,53 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
                       render={({ field }) => (
                         <FormItem>
                           <Label>
-                            Photo URL <span className="text-destructive">*</span>
+                            Photo <span className="text-destructive">*</span>
                           </Label>
-                          <Input {...field} placeholder="https://example.com/photo.jpg" />
+                          <div className="flex items-start gap-3">
+                            {/* Preview */}
+                            <div
+                              className="shrink-0 w-16 h-16 rounded-lg border border-dashed border-muted-foreground/30 bg-muted flex items-center justify-center overflow-hidden cursor-pointer"
+                              onClick={() => fileInputRef.current?.click()}
+                            >
+                              {(photoPreview || field.value) ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={photoPreview || field.value}
+                                  alt="Photo preview"
+                                  className="w-full h-full object-cover"
+                                  onError={() => setPhotoPreview("")}
+                                />
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground text-center px-1">
+                                  Click to upload
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 flex flex-col gap-2">
+                              <Input
+                                {...field}
+                                placeholder="https://example.com/photo.jpg"
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  setPhotoPreview("");
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="text-xs text-brand-blue hover:underline text-left"
+                              >
+                                Or choose a file…
+                              </button>
+                            </div>
+                          </div>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleFileChange}
+                          />
                           <FormMessage />
                         </FormItem>
                       )}

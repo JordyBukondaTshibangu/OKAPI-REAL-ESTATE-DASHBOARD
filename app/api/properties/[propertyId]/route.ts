@@ -16,11 +16,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ prop
   return NextResponse.json(data, { status: res.status });
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ propertyId: string }> }) {
   const { propertyId } = await params;
   const body = await req.json();
   const res = await fetch(`${BACKEND}/properties/${propertyId}`, {
-    method: "PUT",
+    method: "PATCH",
     headers: authHeaders(req),
     body: JSON.stringify(body),
   });

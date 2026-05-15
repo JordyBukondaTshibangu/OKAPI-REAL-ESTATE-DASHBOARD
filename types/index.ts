@@ -172,3 +172,20 @@ export type PropertyDetail = Property & {
   averagePriceArea: number;
   averageSizeArea: number;
 };
+
+export type AuditLog = {
+  id: string;
+  action: string;
+  resource: string;
+  details: string;
+  createdAt: string;
+  admin: { id: string; email: string } | null;
+};
+
+export type AuditLogParams = {
+  page?: number;
+  limit?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+};
