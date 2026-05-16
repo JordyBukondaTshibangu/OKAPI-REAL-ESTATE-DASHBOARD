@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { useAgent } from "@/lib/queries/agents";
+import DetailPropertiesList from "@/components/dashboard/main/_common/detail-properties-list";
 import DeleteAgentDialog from "../dialogs/delete-agent";
 import EditAgent from "../dialogs/edit-agent/edit-agent";
 
@@ -322,6 +323,9 @@ function AgentDetail({ agentId }: Props) {
           )}
         </div>
       </div>
+
+      {/* ── Properties ─────────────────────────────────────────── */}
+      <DetailPropertiesList agentId={agentId} />
 
       <DeleteAgentDialog
         agent={agent}

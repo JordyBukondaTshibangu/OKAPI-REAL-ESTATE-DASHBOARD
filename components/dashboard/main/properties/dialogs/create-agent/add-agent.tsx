@@ -114,6 +114,19 @@ function useInfiniteAgents() {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const LISTING_TYPES = ["rent", "sale", "commercial"] as const;
+
+const IMAGE_GRADIENT_OPTIONS = [
+  { label: "Blue Sky",     value: "from-blue-400 to-blue-700"    },
+  { label: "Navy Night",   value: "from-slate-700 to-slate-900"  },
+  { label: "Gold Sunrise", value: "from-amber-400 to-orange-600" },
+  { label: "Purple Dusk",  value: "from-purple-400 to-purple-700"},
+  { label: "Emerald",      value: "from-emerald-400 to-emerald-700"},
+  { label: "Rose",         value: "from-rose-400 to-rose-700"    },
+  { label: "Indigo",       value: "from-indigo-400 to-indigo-700"},
+  { label: "Teal",         value: "from-teal-400 to-teal-600"    },
+  { label: "Crimson",      value: "from-red-400 to-red-700"      },
+  { label: "Charcoal",     value: "from-gray-500 to-gray-800"    },
+] as const;
 const CATEGORIES = [
   "apartment", "villa", "townhouse", "studio", "duplex",
   "penthouse", "land", "office", "warehouse", "retail",
@@ -575,7 +588,10 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="bedrooms"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Bedrooms <span className="text-destructive">*</span></Label>
+                            <Label>
+                              {watch("category") === "office" ? "Rooms" : "Bedrooms"}{" "}
+                              <span className="text-destructive">*</span>
+                            </Label>
                             <Input
                               {...field}
                               type="number"
@@ -635,7 +651,36 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       render={({ field }) => (
                         <FormItem>
                           <Label>Image gradient <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder="from-blue-400 to-blue-700" />
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger className="w-full">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {field.value && (
+                                  <span
+                                    className={cn(
+                                      "inline-block shrink-0 w-12 h-4 rounded-sm bg-linear-to-r",
+                                      field.value,
+                                    )}
+                                  />
+                                )}
+                                <SelectValue placeholder="Select a gradient" />
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {IMAGE_GRADIENT_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={cn(
+                                        "inline-block w-12 h-4 rounded-sm bg-linear-to-r shrink-0",
+                                        opt.value,
+                                      )}
+                                    />
+                                    {opt.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

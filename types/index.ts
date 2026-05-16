@@ -23,6 +23,9 @@ export type QueryParams = {
 
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+
+  agentId?: string;
+  agencyId?: string;
 };
 
 export type PaginatedData<T> = {

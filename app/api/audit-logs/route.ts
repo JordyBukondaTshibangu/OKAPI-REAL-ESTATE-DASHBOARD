@@ -12,7 +12,7 @@ function authHeaders(req: NextRequest): Record<string, string> {
 export async function GET(req: NextRequest) {
   const search = req.nextUrl.searchParams.toString();
   const res = await fetch(
-    `${BACKEND}/audit-logs${search ? `?${search}` : ""}`,
+    `${BACKEND}/admin/audit-logs${search ? `?${search}` : ""}`,
     { headers: authHeaders(req) },
   );
   const data = await res.json();

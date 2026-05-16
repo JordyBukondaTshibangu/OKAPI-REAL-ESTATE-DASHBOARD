@@ -13,6 +13,8 @@ function buildParams(params: QueryParams) {
   else if (params.search) p.search = params.search;
   if (params.sortBy) p.sortBy = params.sortBy;
   if (params.sortOrder) p.sortOrder = params.sortOrder;
+  if (params.agentId) p.agentId = params.agentId;
+  if (params.agencyId) p.agencyId = params.agencyId;
   return p;
 }
 
@@ -56,7 +58,7 @@ export function useUpdateProperty() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...body }: Record<string, unknown> & { id: string }) =>
-      api.put(`/api/properties/${id}`, body).then((r) => r.data),
+      api.patch(`/api/properties/${id}`, body).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: [PROPERTIES_KEY] }),
   });
 }
