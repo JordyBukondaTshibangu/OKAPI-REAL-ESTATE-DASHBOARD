@@ -55,7 +55,7 @@ export function useUpdateAgent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...body }: Partial<Agent> & { id: string }) =>
-      api.put(`/api/agents/${id}`, body).then((r) => r.data),
+      api.patch(`/api/agents/${id}`, body).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: [AGENTS_KEY] }),
   });
 }
