@@ -1,8 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Check, ImageIcon, Link2, UploadCloud, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -15,7 +15,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -39,7 +38,7 @@ import { Agent } from "@/types";
 import { cn } from "@/lib/utils";
 import { AddPropertyFormValues, addPropertySchema } from "./schema";
 
-// ─── Infinite-scroll hooks for dropdowns ─────────────────────────────────────
+// ─── Infinite-scroll hooks ────────────────────────────────────────────────────
 
 const DROPDOWN_PAGE_SIZE = 30;
 
@@ -47,14 +46,25 @@ function useInfiniteAgencies() {
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<Agency[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [search, setSearch] = useState("");
+  const [cachedSearch, setCachedSearch] = useState("");
 
-  const { data, isLoading } = useAgencies({ page, pageSize: DROPDOWN_PAGE_SIZE });
+  // Derived-state reset: when search changes, reset pagination immediately
+  if (cachedSearch !== search) {
+    setCachedSearch(search);
+    setPage(1);
+    setItems([]);
+  }
+
+  const { data, isLoading } = useAgencies({
+    page,
+    pageSize: DROPDOWN_PAGE_SIZE,
+    search: search || undefined,
+  });
 
   useEffect(() => {
     if (!data?.data) return;
-    setItems((prev) =>
-      page === 1 ? data.data : [...prev, ...data.data],
-    );
+    setItems((prev) => (page === 1 ? data.data : [...prev, ...data.data]));
     setIsLoadingMore(false);
   }, [data, page]);
 
@@ -68,27 +78,42 @@ function useInfiniteAgencies() {
     }
   }
 
+  function onSearch(query: string) {
+    setSearch(query);
+  }
+
   return {
     items,
     isLoading: isLoading && page === 1,
     isLoadingMore,
     hasMore,
     loadMore,
+    onSearch,
   };
 }
 
-function useInfiniteAgents() {
+function useInfiniteAgents(agencyId: string) {
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<Agent[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [cachedAgencyId, setCachedAgencyId] = useState(agencyId);
 
-  const { data, isLoading } = useAgents({ page, pageSize: DROPDOWN_PAGE_SIZE });
+  // Derived-state reset: when agency changes, reset pagination immediately
+  if (cachedAgencyId !== agencyId) {
+    setCachedAgencyId(agencyId);
+    setPage(1);
+    setItems([]);
+  }
+
+  const { data, isLoading } = useAgents({
+    page,
+    pageSize: DROPDOWN_PAGE_SIZE,
+    agencyId: agencyId || undefined,
+  });
 
   useEffect(() => {
     if (!data?.data) return;
-    setItems((prev) =>
-      page === 1 ? data.data : [...prev, ...data.data],
-    );
+    setItems((prev) => (page === 1 ? data.data : [...prev, ...data.data]));
     setIsLoadingMore(false);
   }, [data, page]);
 
@@ -111,7 +136,7 @@ function useInfiniteAgents() {
   };
 }
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const LISTING_TYPES = ["rent", "sale", "commercial"] as const;
 
@@ -127,38 +152,91 @@ const IMAGE_GRADIENT_OPTIONS = [
   { label: "Crimson",      value: "from-red-400 to-red-700"      },
   { label: "Charcoal",     value: "from-gray-500 to-gray-800"    },
 ] as const;
+
 const CATEGORIES = [
   "apartment", "villa", "townhouse", "studio", "duplex",
   "penthouse", "land", "office", "warehouse", "retail",
 ] as const;
+
 const ICON_TYPES = ["building", "home", "land", "office", "store", "warehouse"] as const;
 const PERIODS = ["monthly", "yearly"] as const;
 const TRANSACTIONS = ["rent", "sale"] as const;
 
-const STEPS = [
-  { label: "Assignment",      description: "Agency & agent"       },
-  { label: "Listing Details", description: "Type, category & pricing" },
-  { label: "Location",        description: "Address & specs"       },
-  { label: "Media & Features",description: "Visuals & amenities"  },
-  { label: "Legal & Market",  description: "Optional details"     },
+const ZONE_OPTIONS = [
+  "Résidentielle",
+  "Commerciale",
+  "Industrielle",
+  "Mixte",
+  "Agricole",
+  "Touristique",
+  "Zone franche",
+  "Zone portuaire",
 ];
 
-// Required fields that must pass validation before advancing each step
+const AMENITY_SUGGESTIONS: Record<string, string[]> = {
+  apartment:  ["Ascenseur", "Parking", "Balcon", "Gardien", "Salle de sport", "Piscine", "Cave", "Digicode", "Interphone"],
+  villa:      ["Piscine", "Garage", "Salle de sport", "Jardin", "Terrasse", "Sécurité 24h/24", "Chauffage central", "Dressing"],
+  townhouse:  ["Garage", "Jardin", "Terrasse", "Piscine", "Parking", "Cave", "Chauffage central", "Barbecue"],
+  studio:     ["Cuisine équipée", "Climatisation", "Parking", "Ascenseur", "Tout inclus", "Internet inclus"],
+  duplex:     ["Terrasse", "Parking", "Ascenseur", "Cave", "Vue panoramique", "Jardin privatif", "Dressing"],
+  penthouse:  ["Terrasse panoramique", "Piscine privée", "Ascenseur privatif", "Parking sécurisé", "Conciergerie", "Vue mer"],
+  land:       ["Eau", "Électricité", "Accès routier", "Clôturé", "Constructible", "Viabilisé", "Titre foncier"],
+  office:     ["Parking couvert", "Cuisine", "Salle de réunion", "Climatisation", "Fibre optique", "Accès sécurisé", "Open space", "Cafétéria"],
+  warehouse:  ["Quai de chargement", "Parking poids lourds", "Sécurité", "Électricité triphasée", "Pont roulant", "Sprinklers", "Bureau intégré"],
+  retail:     ["Parking", "Vitrine", "Climatisation", "Réserve", "Cave", "Accès PMR", "Alarme"],
+};
+
+const STEPS = [
+  { label: "Affectation",    description: "Agence & agent"          },
+  { label: "Annonce",        description: "Type, catégorie & prix"  },
+  { label: "Localisation",   description: "Adresse & caractéristiques" },
+  { label: "Médias",         description: "Visuels & équipements"   },
+  { label: "Légal & Marché", description: "Détails optionnels"      },
+];
+
 const STEP_REQUIRED_FIELDS: Array<(keyof AddPropertyFormValues)[]> = [
   ["agencyId", "agentId"],
   ["listingType", "category", "iconType", "title", "subtitle", "price", "currency"],
   ["city", "suburb", "neighborhood", "bedrooms", "bathrooms", "areaSqm"],
   ["imageGradient", "amenities"],
-  [], // all optional on step 5
+  [],
 ];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const MAX_GALLERY_IMAGES = 30;
+
+type GalleryItem = { file: File; previewUrl: string };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Lecture du fichier échouée"));
+    reader.readAsDataURL(file);
+  });
+}
 
 function splitTrim(val: string): string[] {
   return val.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
-// ─── Step Indicator ──────────────────────────────────────────────────────────
+function isAmenitySelected(current: string, tag: string): boolean {
+  return splitTrim(current).some((a) => a.toLowerCase() === tag.toLowerCase());
+}
+
+function toggleAmenityTag(current: string, tag: string): string {
+  const list = splitTrim(current);
+  const idx = list.findIndex((a) => a.toLowerCase() === tag.toLowerCase());
+  if (idx >= 0) {
+    list.splice(idx, 1);
+  } else {
+    list.push(tag);
+  }
+  return list.join(", ");
+}
+
+// ─── Step Indicator ───────────────────────────────────────────────────────────
 
 function StepIndicator({ current }: { current: number }) {
   return (
@@ -201,7 +279,7 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
-// ─── Props ───────────────────────────────────────────────────────────────────
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 type AddPropertyProps = {
   open: boolean;
@@ -209,15 +287,21 @@ type AddPropertyProps = {
   setToggle: (open: boolean) => void;
 };
 
-// ─── Main Component ──────────────────────────────────────────────────────────
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
   const { mutateAsync: createProperty, isPending } = useCreateProperty();
-  const agencies = useInfiniteAgencies();
-  const agentsDropdown = useInfiniteAgents();
 
   const [step, setStep] = useState(0);
   const [openDiscard, setOpenDiscard] = useState(false);
+  const [agencyIdForAgents, setAgencyIdForAgents] = useState("");
+  const [galleryMode, setGalleryMode] = useState<"urls" | "images">("urls");
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const agencies = useInfiniteAgencies();
+  const agentsDropdown = useInfiniteAgents(agencyIdForAgents);
 
   const form = useForm<AddPropertyFormValues>({
     resolver: zodResolver(addPropertySchema),
@@ -258,7 +342,44 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
     mode: "onChange",
   });
 
-  const { reset, handleSubmit, control, watch, formState } = form;
+  const { reset, control, watch, formState } = form;
+
+  const watchedCategory = watch("category");
+
+  // ── Gallery helpers ─────────────────────────────────────────────────────────
+
+  function handleAddFiles(files: File[]) {
+    const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+    const remaining = MAX_GALLERY_IMAGES - galleryItems.length;
+    if (remaining <= 0) return;
+    const toAdd = imageFiles.slice(0, remaining);
+    const newItems: GalleryItem[] = toAdd.map((f) => ({
+      file: f,
+      previewUrl: URL.createObjectURL(f),
+    }));
+    setGalleryItems((prev) => [...prev, ...newItems]);
+  }
+
+  function handleRemoveGalleryItem(idx: number) {
+    setGalleryItems((prev) => {
+      URL.revokeObjectURL(prev[idx].previewUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
+  }
+
+  function handleGalleryModeChange(mode: "urls" | "images") {
+    if (mode === "urls") {
+      galleryItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+      setGalleryItems([]);
+    }
+    setGalleryMode(mode);
+  }
+
+  function clearGalleryImages() {
+    galleryItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+    setGalleryItems([]);
+    setGalleryMode("urls");
+  }
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
@@ -287,6 +408,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
   function handleDiscard() {
     reset();
     setStep(0);
+    setAgencyIdForAgents("");
+    clearGalleryImages();
     setToggle(false);
     setOpenDiscard(false);
   }
@@ -295,12 +418,21 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
 
   const onSubmit = useCallback(
     async (values: AddPropertyFormValues) => {
+      // Guard: only submit from the last step to prevent button-swap timing bug
+      if (step !== STEPS.length - 1) return;
       try {
+        let galleryUrls: string[];
+        if (galleryMode === "images") {
+          galleryUrls = await Promise.all(galleryItems.map(({ file }) => readFileAsDataUrl(file)));
+        } else {
+          galleryUrls = values.gallery ? splitTrim(values.gallery) : [];
+        }
+
         const payload = {
           ...values,
           period:        values.period        || undefined,
           transaction:   values.transaction   || undefined,
-          gallery:       values.gallery ? splitTrim(values.gallery) : [],
+          gallery:       galleryUrls,
           amenities:     splitTrim(values.amenities),
           description:   values.description   || undefined,
           reference:     values.reference     || undefined,
@@ -311,18 +443,19 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
           availableFrom: values.availableFrom || undefined,
         };
         await createProperty(payload);
-        toast.success("Property created successfully");
+        toast.success("Propriété créée avec succès");
         reset();
         setStep(0);
+        setAgencyIdForAgents("");
+        clearGalleryImages();
         setToggle(false);
         resetCurrentPage?.();
       } catch {
-        toast.error("Failed to create property. Please try again.");
+        toast.error("Échec de la création. Veuillez réessayer.");
       }
     },
-    [createProperty, reset, setToggle, resetCurrentPage],
+    [step, galleryMode, galleryItems, createProperty, reset, setToggle, resetCurrentPage],
   );
-
 
   const isLastStep = step === STEPS.length - 1;
 
@@ -330,22 +463,18 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
 
   return (
     <>
-      {isPending && <Loading label="Creating property" />}
+      {isPending && <Loading label="Création en cours…" />}
 
       <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="sm:max-w-[580px] p-0 gap-0 overflow-hidden">
           <Form {...form}>
-            {/*
-              IMPORTANT: <form> must be INSIDE <DialogContent> so the submit
-              button and the form share the same DOM subtree (portal context).
-            */}
-            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col">
               {/* Header */}
               <div className="px-6 pt-6 pb-4 flex flex-col gap-1 border-b">
                 <DialogHeader>
-                  <DialogTitle>Add Property</DialogTitle>
+                  <DialogTitle>Ajouter une propriété</DialogTitle>
                   <DialogDescription>
-                    {STEPS[step].description} — step {step + 1} of {STEPS.length}
+                    {STEPS[step].description} — étape {step + 1} sur {STEPS.length}
                   </DialogDescription>
                 </DialogHeader>
               </div>
@@ -358,7 +487,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
               {/* Step content */}
               <div className="px-6 pb-4 min-h-[280px] flex flex-col gap-4">
 
-                {/* ── Step 1: Assignment ──────────────────────────────── */}
+                {/* ── Étape 1 : Affectation ────────────────────────────── */}
                 {step === 0 && (
                   <>
                     <FormField
@@ -366,17 +495,22 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       name="agencyId"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Agency <span className="text-destructive">*</span></Label>
+                          <Label>Agence <span className="text-destructive">*</span></Label>
                           <InfiniteCombobox
                             value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Select agency"
-                            searchPlaceholder="Search agencies…"
+                            onChange={(value) => {
+                              field.onChange(value);
+                              setAgencyIdForAgents(value);
+                              form.setValue("agentId", "");
+                            }}
+                            placeholder="Sélectionner une agence"
+                            searchPlaceholder="Rechercher une agence…"
                             items={agencies.items}
                             isLoading={agencies.isLoading}
                             isLoadingMore={agencies.isLoadingMore}
                             hasMore={agencies.hasMore}
                             onLoadMore={agencies.loadMore}
+                            onSearch={agencies.onSearch}
                           />
                           <FormMessage />
                         </FormItem>
@@ -391,13 +525,18 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                           <InfiniteCombobox
                             value={field.value}
                             onChange={field.onChange}
-                            placeholder="Select agent"
-                            searchPlaceholder="Search agents…"
+                            placeholder={
+                              agencyIdForAgents
+                                ? "Sélectionner un agent"
+                                : "Sélectionnez d'abord une agence"
+                            }
+                            searchPlaceholder="Rechercher un agent…"
                             items={agentsDropdown.items}
                             isLoading={agentsDropdown.isLoading}
                             isLoadingMore={agentsDropdown.isLoadingMore}
                             hasMore={agentsDropdown.hasMore}
                             onLoadMore={agentsDropdown.loadMore}
+                            disabled={!agencyIdForAgents}
                           />
                           <FormMessage />
                         </FormItem>
@@ -406,7 +545,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                   </>
                 )}
 
-                {/* ── Step 2: Listing Details ─────────────────────────── */}
+                {/* ── Étape 2 : Détails de l'annonce ──────────────────── */}
                 {step === 1 && (
                   <>
                     <FormField
@@ -414,8 +553,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       name="title"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Title <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder="Luxury 3-Bed Apartment" />
+                          <Label>Titre <span className="text-destructive">*</span></Label>
+                          <Input {...field} placeholder="Appartement luxueux 3 chambres" />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -425,8 +564,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       name="subtitle"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Subtitle <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder="Sea-view in Downtown Marina" />
+                          <Label>Sous-titre <span className="text-destructive">*</span></Label>
+                          <Input {...field} placeholder="Vue mer au centre-ville" />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -437,7 +576,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="listingType"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Listing type <span className="text-destructive">*</span></Label>
+                            <Label>Type d'annonce <span className="text-destructive">*</span></Label>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                               <SelectContent>
@@ -455,7 +594,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="category"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Category <span className="text-destructive">*</span></Label>
+                            <Label>Catégorie <span className="text-destructive">*</span></Label>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                               <SelectContent>
@@ -473,7 +612,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="iconType"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Icon <span className="text-destructive">*</span></Label>
+                            <Label>Icône <span className="text-destructive">*</span></Label>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                               <SelectContent>
@@ -493,7 +632,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="price"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Price <span className="text-destructive">*</span></Label>
+                            <Label>Prix <span className="text-destructive">*</span></Label>
                             <Input
                               {...field}
                               type="number"
@@ -510,7 +649,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="currency"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Currency <span className="text-destructive">*</span></Label>
+                            <Label>Devise <span className="text-destructive">*</span></Label>
                             <Input {...field} placeholder="USD" />
                             <FormMessage />
                           </FormItem>
@@ -521,7 +660,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="period"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Period</Label>
+                            <Label>Période</Label>
                             <Select
                               onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}
                               value={field.value || "__none__"}
@@ -530,7 +669,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="__none__">None</SelectItem>
+                                <SelectItem value="__none__">Aucune</SelectItem>
                                 {PERIODS.map((p) => (
                                   <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>
                                 ))}
@@ -544,7 +683,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                   </>
                 )}
 
-                {/* ── Step 3: Location & Specs ────────────────────────── */}
+                {/* ── Étape 3 : Localisation & Caractéristiques ────────── */}
                 {step === 2 && (
                   <>
                     <div className="grid grid-cols-3 gap-3">
@@ -553,8 +692,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="city"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>City <span className="text-destructive">*</span></Label>
-                            <Input {...field} placeholder="Dubai" />
+                            <Label>Ville <span className="text-destructive">*</span></Label>
+                            <Input {...field} placeholder="Kinshasa" />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -564,8 +703,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="suburb"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Suburb <span className="text-destructive">*</span></Label>
-                            <Input {...field} placeholder="Marina" />
+                            <Label>Commune <span className="text-destructive">*</span></Label>
+                            <Input {...field} placeholder="Gombe" />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -575,8 +714,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="neighborhood"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Neighborhood <span className="text-destructive">*</span></Label>
-                            <Input {...field} placeholder="Palm Jumeirah" />
+                            <Label>Quartier <span className="text-destructive">*</span></Label>
+                            <Input {...field} placeholder="Lingwala" />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -589,7 +728,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         render={({ field }) => (
                           <FormItem>
                             <Label>
-                              {watch("category") === "office" ? "Rooms" : "Bedrooms"}{" "}
+                              {watchedCategory === "office" ? "Pièces" : "Chambres"}{" "}
                               <span className="text-destructive">*</span>
                             </Label>
                             <Input
@@ -608,7 +747,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="bathrooms"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Bathrooms <span className="text-destructive">*</span></Label>
+                            <Label>Salles de bain <span className="text-destructive">*</span></Label>
                             <Input
                               {...field}
                               type="number"
@@ -625,7 +764,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="areaSqm"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Area (m²) <span className="text-destructive">*</span></Label>
+                            <Label>Surface (m²) <span className="text-destructive">*</span></Label>
                             <Input
                               {...field}
                               type="number"
@@ -642,7 +781,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                   </>
                 )}
 
-                {/* ── Step 4: Media & Features ────────────────────────── */}
+                {/* ── Étape 4 : Médias & Équipements ──────────────────── */}
                 {step === 3 && (
                   <>
                     <FormField
@@ -650,7 +789,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       name="imageGradient"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Image gradient <span className="text-destructive">*</span></Label>
+                          <Label>Dégradé d'image <span className="text-destructive">*</span></Label>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger className="w-full">
                               <div className="flex items-center gap-2 min-w-0">
@@ -662,7 +801,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                                     )}
                                   />
                                 )}
-                                <SelectValue placeholder="Select a gradient" />
+                                <SelectValue placeholder="Choisir un dégradé" />
                               </div>
                             </SelectTrigger>
                             <SelectContent>
@@ -690,9 +829,111 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       name="gallery"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Gallery URLs</Label>
-                          <Input {...field} placeholder="https://img1.jpg, https://img2.jpg" />
-                          <p className="text-xs text-muted-foreground">Separate with commas</p>
+                          <div className="flex items-center justify-between">
+                            <Label>Galerie photos</Label>
+                            <div className="flex items-center gap-0.5 rounded-md border p-0.5 bg-muted">
+                              <button
+                                type="button"
+                                onClick={() => handleGalleryModeChange("urls")}
+                                className={cn(
+                                  "flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors",
+                                  galleryMode === "urls"
+                                    ? "bg-background shadow-sm text-foreground"
+                                    : "text-muted-foreground hover:text-foreground",
+                                )}
+                              >
+                                <Link2 className="w-3 h-3" />
+                                URLs
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleGalleryModeChange("images")}
+                                className={cn(
+                                  "flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors",
+                                  galleryMode === "images"
+                                    ? "bg-background shadow-sm text-foreground"
+                                    : "text-muted-foreground hover:text-foreground",
+                                )}
+                              >
+                                <ImageIcon className="w-3 h-3" />
+                                Images
+                              </button>
+                            </div>
+                          </div>
+
+                          {galleryMode === "urls" ? (
+                            <>
+                              <Input {...field} placeholder="https://img1.jpg, https://img2.jpg" />
+                              <p className="text-xs text-muted-foreground">Séparer par des virgules</p>
+                            </>
+                          ) : (
+                            <>
+                              <div
+                                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                onDragLeave={(e) => {
+                                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                    setIsDragging(false);
+                                  }
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  setIsDragging(false);
+                                  handleAddFiles(Array.from(e.dataTransfer.files));
+                                }}
+                                onClick={() => fileInputRef.current?.click()}
+                                className={cn(
+                                  "border-2 border-dashed rounded-lg py-5 px-4 cursor-pointer text-center transition-colors select-none",
+                                  isDragging
+                                    ? "border-brand-blue bg-brand-blue/5"
+                                    : "border-border hover:border-brand-navy/50",
+                                  galleryItems.length >= MAX_GALLERY_IMAGES && "pointer-events-none opacity-60",
+                                )}
+                              >
+                                <UploadCloud className="w-7 h-7 mx-auto mb-1.5 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground">
+                                  Glisser-déposer ou{" "}
+                                  <span className="text-brand-navy font-medium underline">parcourir</span>
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {galleryItems.length}/{MAX_GALLERY_IMAGES} images • JPG, PNG, WebP
+                                </p>
+                                <input
+                                  ref={fileInputRef}
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    handleAddFiles(Array.from(e.target.files ?? []));
+                                    e.target.value = "";
+                                  }}
+                                />
+                              </div>
+                              {galleryItems.length > 0 && (
+                                <div className="grid grid-cols-5 gap-1.5 mt-1">
+                                  {galleryItems.map((item, idx) => (
+                                    <div key={idx} className="relative group aspect-square">
+                                      <img
+                                        src={item.previewUrl}
+                                        alt={item.file.name}
+                                        className="w-full h-full object-cover rounded-md border"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRemoveGalleryItem(idx);
+                                        }}
+                                        className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        <X className="w-2.5 h-2.5" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -700,14 +941,42 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                     <FormField
                       control={control}
                       name="amenities"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>Amenities <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder="Pool, Gym, Parking, Concierge" />
-                          <p className="text-xs text-muted-foreground">Separate with commas</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const suggestions = AMENITY_SUGGESTIONS[watchedCategory] ?? [];
+                        return (
+                          <FormItem>
+                            <Label>Équipements <span className="text-destructive">*</span></Label>
+                            {suggestions.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 pb-1">
+                                {suggestions.map((tag) => {
+                                  const selected = isAmenitySelected(field.value, tag);
+                                  return (
+                                    <button
+                                      key={tag}
+                                      type="button"
+                                      onClick={() =>
+                                        field.onChange(toggleAmenityTag(field.value, tag))
+                                      }
+                                      className={cn(
+                                        "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-colors",
+                                        selected
+                                          ? "bg-brand-navy text-white border-brand-navy"
+                                          : "bg-background text-muted-foreground border-border hover:border-brand-navy hover:text-foreground",
+                                      )}
+                                    >
+                                      {selected && <X className="w-2.5 h-2.5" />}
+                                      {tag}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            <Input {...field} placeholder="Piscine, Garage, Ascenseur…" />
+                            <p className="text-xs text-muted-foreground">Cliquez sur les tags ou saisissez manuellement, séparés par des virgules</p>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                     <div className="grid grid-cols-2 gap-3">
                       <FormField
@@ -724,7 +993,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="__none__">None</SelectItem>
+                                <SelectItem value="__none__">Aucune</SelectItem>
                                 {TRANSACTIONS.map((t) => (
                                   <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
                                 ))}
@@ -737,9 +1006,9 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       <div className="flex items-end gap-4 pb-1">
                         {(
                           [
-                            { name: "verified", label: "Verified" },
+                            { name: "verified", label: "Vérifié"  },
                             { name: "premium",  label: "Premium"  },
-                            { name: "isNew",    label: "New"      },
+                            { name: "isNew",    label: "Nouveau"  },
                           ] as const
                         ).map(({ name, label }) => (
                           <FormField
@@ -775,7 +1044,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                               {...field}
                               value={field.value ?? ""}
                               className={cn("h-20", { "border-destructive": exceeded })}
-                              placeholder="Describe the property (optional)"
+                              placeholder="Décrivez la propriété (optionnel)"
                             />
                             <div className="flex justify-end">
                               <span className={cn("text-muted-foreground text-xs", { "text-destructive": exceeded })}>
@@ -789,7 +1058,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                   </>
                 )}
 
-                {/* ── Step 5: Legal & Market ──────────────────────────── */}
+                {/* ── Étape 5 : Légal & Marché ────────────────────────── */}
                 {step === 4 && (
                   <>
                     <div className="grid grid-cols-2 gap-3">
@@ -798,7 +1067,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="reference"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Reference</Label>
+                            <Label>Référence</Label>
                             <Input {...field} placeholder="REF-001" />
                             <FormMessage />
                           </FormItem>
@@ -810,7 +1079,20 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         render={({ field }) => (
                           <FormItem>
                             <Label>Zone</Label>
-                            <Input {...field} placeholder="Zone A" />
+                            <Select
+                              onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}
+                              value={field.value || "__none__"}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Choisir une zone" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Non spécifiée</SelectItem>
+                                {ZONE_OPTIONS.map((z) => (
+                                  <SelectItem key={z} value={z}>{z}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -820,7 +1102,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="brokerLicense"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Broker license</Label>
+                            <Label>Licence courtier</Label>
                             <Input {...field} placeholder="BRN-123" />
                             <FormMessage />
                           </FormItem>
@@ -831,7 +1113,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="agentLicense"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Agent license</Label>
+                            <Label>Licence agent</Label>
                             <Input {...field} placeholder="ALN-456" />
                             <FormMessage />
                           </FormItem>
@@ -842,7 +1124,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="permitNumber"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Permit number</Label>
+                            <Label>N° de permis</Label>
                             <Input {...field} placeholder="PM-789" />
                             <FormMessage />
                           </FormItem>
@@ -853,7 +1135,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="availableFrom"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Available from</Label>
+                            <Label>Disponible à partir du</Label>
                             <Input {...field} type="date" />
                             <FormMessage />
                           </FormItem>
@@ -864,7 +1146,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="averagePriceArea"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Avg price / m²</Label>
+                            <Label>Prix moy. / m²</Label>
                             <Input
                               type="number"
                               min={0}
@@ -883,7 +1165,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="averageSizeArea"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Avg size / m²</Label>
+                            <Label>Surface moy. / m²</Label>
                             <Input
                               type="number"
                               min={0}
@@ -909,26 +1191,27 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                   variant="outline"
                   onClick={() => handleDialogChange(false)}
                 >
-                  Cancel
+                  Annuler
                 </Button>
 
                 <div className="flex items-center gap-2">
                   {step > 0 && (
                     <Button type="button" variant="outline" onClick={handleBack}>
-                      Back
+                      Retour
                     </Button>
                   )}
                   {isLastStep ? (
                     <Button
-                      type="submit"
+                      type="button"
                       className="bg-gradient-primary"
                       disabled={isPending}
+                      onClick={() => form.handleSubmit(onSubmit)()}
                     >
-                      Create Property
+                      Créer la propriété
                     </Button>
                   ) : (
                     <Button type="button" onClick={handleNext}>
-                      Next
+                      Suivant
                     </Button>
                   )}
                 </div>
@@ -940,11 +1223,11 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
 
       <DialogDiscard
         open={openDiscard}
-        title="Discard changes?"
+        title="Annuler les modifications ?"
         onDiscard={handleDiscard}
         onOpenChange={setOpenDiscard}
         onClose={() => setOpenDiscard(false)}
-        description="You've entered details that haven't been saved. Closing now will remove them."
+        description="Vous avez saisi des informations qui n'ont pas été enregistrées. Fermer maintenant les supprimera."
       />
     </>
   );

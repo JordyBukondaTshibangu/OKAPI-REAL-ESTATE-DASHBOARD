@@ -31,6 +31,7 @@ type InfiniteComboboxProps = {
   isLoadingMore?: boolean;
   hasMore?: boolean;
   onLoadMore?: () => void;
+  onSearch?: (query: string) => void;
   disabled?: boolean;
   className?: string;
 };
@@ -45,6 +46,7 @@ export function InfiniteCombobox({
   isLoadingMore,
   hasMore,
   onLoadMore,
+  onSearch,
   disabled,
   className,
 }: InfiniteComboboxProps) {
@@ -90,8 +92,8 @@ export function InfiniteCombobox({
         style={{ width: "var(--radix-popover-trigger-width)" }}
         align="start"
       >
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+        <Command filter={onSearch ? () => 1 : undefined}>
+          <CommandInput placeholder={searchPlaceholder} onValueChange={onSearch} />
           <CommandList
             onScroll={handleScroll}
             className="max-h-52 overflow-y-auto"

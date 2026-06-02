@@ -12,6 +12,7 @@ function buildParams(params: QueryParams) {
   if (params.search) p.search = params.search;
   if (params.sortBy) p.sortBy = params.sortBy;
   if (params.sortOrder) p.sortOrder = params.sortOrder;
+  if (params.agencyId) p.agencyId = params.agencyId;
   return p;
 }
 
