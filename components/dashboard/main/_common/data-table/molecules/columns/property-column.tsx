@@ -50,7 +50,7 @@ export function getResourcesColumns(
       enableSorting: false,
       header: "Type",
       cell: ({ row }) => (
-        <Badge variant="outline" className="capitalize text-xs">
+        <Badge variant="outline" className="capitalize text-xs w-20">
           {safeString(row.original.listingType)}
         </Badge>
       ),

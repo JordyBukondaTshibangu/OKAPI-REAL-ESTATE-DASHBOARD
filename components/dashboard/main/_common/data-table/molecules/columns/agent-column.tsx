@@ -55,7 +55,7 @@ export function getAgentsColumns(
       enableSorting: false,
       header: "Title",
       cell: ({ row }) => (
-        <Badge variant="outline" className="capitalize text-xs">
+        <Badge variant="outline" className="capitalize text-xs w-36">
           {safeString(row.original.title)}
         </Badge>
       ),

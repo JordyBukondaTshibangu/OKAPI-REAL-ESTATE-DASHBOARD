@@ -73,7 +73,7 @@ export function DataTable<TData, TValue>({
                 <TableHead
                   key={header.id}
                   className={cn(
-                    "text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3",
+                    "text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-5",
                     header.column.getCanSort() && "cursor-pointer select-none hover:text-foreground transition-colors",
                   )}
                   onClick={header.column.getToggleSortingHandler()}
@@ -104,7 +104,7 @@ export function DataTable<TData, TValue>({
                 )}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="py-3 text-sm">
+                  <TableCell key={cell.id} className="py-3 text-sm px-5">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
