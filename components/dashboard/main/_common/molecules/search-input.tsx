@@ -17,6 +17,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { QueryParams, SEARCH_TYPE } from "@/types";
+import { useTranslation } from "@/hooks/use-translation";
 
 export interface DateRange {
   start: Date | null;
@@ -38,6 +39,7 @@ function SearchInput({
   setParams,
   setCurrentPage,
 }: ActivityFilterProps) {
+  const t = useTranslation();
   const [searchInput, setSearchInput] = useState<string>("");
   const [openPopover, setOpenPopover] = useState<boolean>(false);
   const [appliedSearchQuery, setAppliedSearchQuery] = useState<string>("");
@@ -244,7 +246,7 @@ function SearchInput({
                   openPopover && "ring-2 ring-primary",
                 )}
               >
-                Search by
+                {t.search.searchBy}
                 <ChevronDown
                   className={cn(
                     "ml-2 h-4 w-4 opacity-50 transition-transform",
@@ -264,7 +266,7 @@ function SearchInput({
                   onWheel={(e: React.WheelEvent) => e.stopPropagation()}
                   className="overflow-y-auto custom-scrollbar"
                 >
-                  <CommandGroup heading="Search by">
+                  <CommandGroup heading={t.search.searchBy}>
                     {options?.map((option) => (
                       <CommandItem
                         key={option}
@@ -302,8 +304,8 @@ function SearchInput({
             <Input
               placeholder={
                 effectiveSearchOption
-                  ? `Search by ${effectiveSearchOption.toLowerCase()}`
-                  : `Search ${type || ""}`
+                  ? t.search.searchByOption.replace("{option}", effectiveSearchOption.toLowerCase())
+                  : t.search.searchType.replace("{type}", type || "")
               }
               className={cn(
                 "pl-9 w-70.25 h-9 rounded-md border-border",

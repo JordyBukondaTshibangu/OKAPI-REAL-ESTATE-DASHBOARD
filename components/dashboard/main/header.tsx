@@ -5,20 +5,25 @@ import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import LanguageSwitcher from "@/components/common/language-switcher";
+import { useTranslation } from "@/hooks/use-translation";
 
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1).replace(/-/g, " ");
 }
 
-const HEADER_TITLES: Record<string, string> = {
-  dashboard: "Dashboard",
-  agents: "Agents",
-  agencies: "Agencies",
-  properties: "Properties",
-};
-
 export default function MainHeaderLayout() {
   const pathname = usePathname();
+  const t = useTranslation();
+
+  const HEADER_TITLES: Record<string, string> = {
+    dashboard: t.nav.dashboard,
+    agents: t.nav.agents,
+    agencies: t.nav.agencies,
+    properties: t.nav.properties,
+    "audit-logs": t.nav.auditLogs,
+    settings: t.settings.title,
+  };
 
   const pathSegments = useMemo(() => pathname.split("/").filter(Boolean), [pathname]);
 
@@ -43,13 +48,14 @@ export default function MainHeaderLayout() {
           </h1>
 
           <div className="flex items-center gap-3 pr-5">
+            <LanguageSwitcher />
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-end">
                 <span className="text-xs font-semibold text-foreground leading-tight">
                   Okapi Real Estate
                 </span>
                 <span className="text-[10px] text-muted-foreground leading-tight">
-                  Admin Dashboard
+                  {t.header.adminDashboard}
                 </span>
               </div>
               <Avatar className="h-9 w-9 rounded-lg border-2 border-brand-gold/30">

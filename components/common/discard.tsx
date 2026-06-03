@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslation } from "@/hooks/use-translation";
 
 type DialogDiscardType = {
   open: boolean;
@@ -17,6 +20,7 @@ type DialogDiscardType = {
   onDiscard?: () => void;
   onOpenChange?: (open: boolean) => void;
 };
+
 function DialogDiscard({
   open,
   title,
@@ -25,6 +29,8 @@ function DialogDiscard({
   description,
   onOpenChange,
 }: DialogDiscardType) {
+  const t = useTranslation();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-106.25">
@@ -35,7 +41,7 @@ function DialogDiscard({
 
         <DialogFooter>
           <Button variant="secondary" className="w-30.5" onClick={onClose}>
-            Keep editing
+            {t.forms.discard.keepEditing}
           </Button>
           <DialogClose asChild>
             <Button
@@ -43,7 +49,7 @@ function DialogDiscard({
               className="w-22.5"
               onClick={onDiscard}
             >
-              Discard
+              {t.forms.discard.discard}
             </Button>
           </DialogClose>
         </DialogFooter>

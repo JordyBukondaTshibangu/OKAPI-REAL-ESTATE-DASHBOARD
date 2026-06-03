@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuditLogs } from "@/lib/queries/audit-logs";
+import { useTranslation } from "@/hooks/use-translation";
 
 const ACTION_COLORS: Record<string, string> = {
   CREATE: "bg-emerald-100 text-emerald-700",
@@ -28,6 +29,7 @@ function formatTime(iso: string) {
 }
 
 export default function RecentAuditLogs() {
+  const t = useTranslation();
   const { data, isLoading } = useAuditLogs({ page: 1, limit: 5 });
   const logs = data?.data ?? [];
 
@@ -36,13 +38,13 @@ export default function RecentAuditLogs() {
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
         <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
           <span className="w-1 h-4 bg-brand-gold rounded-full" />
-          Recent Activity
+          {t.dashboard.recentActivity}
         </CardTitle>
         <Link
           href="/audit-logs"
           className="flex items-center gap-1 text-xs text-brand-blue hover:underline"
         >
-          View all <ArrowRight className="w-3 h-3" />
+          {t.dashboard.viewAll} <ArrowRight className="w-3 h-3" />
         </Link>
       </CardHeader>
 
@@ -56,7 +58,7 @@ export default function RecentAuditLogs() {
           ))
         ) : logs.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            No activity yet.
+            {t.dashboard.noActivity}
           </p>
         ) : (
           logs.map((log) => (

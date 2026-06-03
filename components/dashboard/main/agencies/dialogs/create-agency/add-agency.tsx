@@ -31,19 +31,20 @@ import { Loading } from "@/components/common/loading";
 import { cn } from "@/lib/utils";
 import { MAX_DESCRIPTION_LENGTH } from "@/constants";
 import { useCreateAgency } from "@/lib/queries/agencies";
+import { useTranslation } from "@/hooks/use-translation";
 import { addAgencySchema, AddAgencyFormValues } from "./schema";
 
 const ACCENT_CLASSES = [
-  { label: "Blue", value: "bg-blue-600" },
-  { label: "Green", value: "bg-green-600" },
+  { label: "Blue",   value: "bg-blue-600" },
+  { label: "Green",  value: "bg-green-600" },
   { label: "Purple", value: "bg-purple-600" },
-  { label: "Red", value: "bg-red-600" },
+  { label: "Red",    value: "bg-red-600" },
   { label: "Orange", value: "bg-orange-600" },
   { label: "Indigo", value: "bg-indigo-600" },
-  { label: "Teal", value: "bg-teal-600" },
-  { label: "Pink", value: "bg-pink-600" },
+  { label: "Teal",   value: "bg-teal-600" },
+  { label: "Pink",   value: "bg-pink-600" },
   { label: "Yellow", value: "bg-yellow-600" },
-  { label: "Gray", value: "bg-gray-700" },
+  { label: "Gray",   value: "bg-gray-700" },
 ];
 
 const currentYear = new Date().getFullYear();
@@ -55,13 +56,13 @@ type AddAgencyProps = {
 };
 
 function splitTrim(val: string): string[] {
-  return val
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return val.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
 function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
+  const t = useTranslation();
+  const f = t.forms.agency;
+
   const { mutateAsync: createAgency, isPending } = useCreateAgency();
   const [openDiscard, setOpenDiscard] = useState(false);
 
@@ -100,15 +101,15 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
           certifications: values.certifications ? splitTrim(values.certifications) : [],
         };
         await createAgency(payload);
-        toast.success("Agency created successfully");
+        toast.success(f.toast.created);
         reset();
         setToggle(false);
         resetCurrentPage?.();
       } catch {
-        toast.error("Failed to create agency. Please try again.");
+        toast.error(f.toast.createFailed);
       }
     },
-    [createAgency, reset, setToggle, resetCurrentPage],
+    [createAgency, reset, setToggle, resetCurrentPage, f],
   );
 
   function handleDialogChange(nextOpen: boolean) {
@@ -128,17 +129,15 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
   return (
     <>
       {isPending ? (
-        <Loading label="Creating agency" />
+        <Loading label={f.loading.creating} />
       ) : (
         <Dialog open={open} onOpenChange={handleDialogChange}>
           <Form {...form}>
             <form onSubmit={handleSubmit(onSubmit)}>
               <DialogContent className="sm:max-w-xl min-w-[850px] flex flex-col gap-4 max-h-[90vh]">
                 <DialogHeader>
-                  <DialogTitle>Add Agency</DialogTitle>
-                  <DialogDescription>
-                    Fill in all details to create a new agency.
-                  </DialogDescription>
+                  <DialogTitle>{f.addTitle}</DialogTitle>
+                  <DialogDescription>{f.addDesc}</DialogDescription>
                 </DialogHeader>
 
                 <ScrollArea className="flex-1 overflow-y-auto pr-1">
@@ -151,9 +150,9 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                         render={({ field }) => (
                           <FormItem className="col-span-2">
                             <Label>
-                              Name <span className="text-destructive">*</span>
+                              {f.labels.name} <span className="text-destructive">*</span>
                             </Label>
-                            <Input {...field} placeholder="e.g. Coldwell Banker" />
+                            <Input {...field} placeholder={f.placeholders.name} />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -164,7 +163,7 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                         render={({ field }) => (
                           <FormItem>
                             <Label>
-                              Monogram <span className="text-destructive">*</span>
+                              {f.labels.monogram} <span className="text-destructive">*</span>
                             </Label>
                             <Input {...field} placeholder="CB" maxLength={5} />
                             <FormMessage />
@@ -180,25 +179,21 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                         render={({ field }) => (
                           <FormItem>
                             <Label>
-                              Accent color <span className="text-destructive">*</span>
+                              {f.labels.accentColor} <span className="text-destructive">*</span>
                             </Label>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <SelectTrigger className="w-full">
                                 <div className="flex items-center gap-2 min-w-0">
                                   {field.value && (
-                                    <span
-                                      className={cn("inline-block shrink-0 w-3 h-3 rounded-full", field.value)}
-                                    />
+                                    <span className={cn("inline-block shrink-0 w-3 h-3 rounded-full", field.value)} />
                                   )}
-                                  <SelectValue placeholder="Pick a color" />
+                                  <SelectValue placeholder={f.placeholders.pickColor} />
                                 </div>
                               </SelectTrigger>
                               <SelectContent>
                                 {ACCENT_CLASSES.map(({ label, value }) => (
                                   <SelectItem key={value} value={value}>
-                                    <span
-                                      className={cn("inline-block w-3 h-3 rounded-full mr-2", value)}
-                                    />
+                                    <span className={cn("inline-block w-3 h-3 rounded-full mr-2", value)} />
                                     {label}
                                   </SelectItem>
                                 ))}
@@ -214,16 +209,10 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                         render={({ field }) => (
                           <FormItem>
                             <Label>
-                              Founded <span className="text-destructive">*</span>
+                              {f.labels.founded} <span className="text-destructive">*</span>
                             </Label>
-                            <Input
-                              {...field}
-                              type="number"
-                              min={1800}
-                              max={currentYear}
-                              placeholder="2005"
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
+                            <Input {...field} type="number" min={1800} max={currentYear} placeholder="2005"
+                              onChange={(e) => field.onChange(Number(e.target.value))} />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -236,9 +225,9 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                       render={({ field }) => (
                         <FormItem>
                           <Label>
-                            Tagline <span className="text-destructive">*</span>
+                            {f.labels.tagline} <span className="text-destructive">*</span>
                           </Label>
-                          <Input {...field} placeholder="Your trusted real estate partner" />
+                          <Input {...field} placeholder={f.placeholders.tagline} />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -252,9 +241,9 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                         render={({ field }) => (
                           <FormItem>
                             <Label>
-                              Email <span className="text-destructive">*</span>
+                              {f.labels.email} <span className="text-destructive">*</span>
                             </Label>
-                            <Input {...field} type="email" placeholder="contact@agency.com" />
+                            <Input {...field} type="email" placeholder={f.placeholders.email} />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -265,9 +254,9 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                         render={({ field }) => (
                           <FormItem>
                             <Label>
-                              Phone <span className="text-destructive">*</span>
+                              {f.labels.phone} <span className="text-destructive">*</span>
                             </Label>
-                            <Input {...field} placeholder="+1 234 567 8900" />
+                            <Input {...field} placeholder={f.placeholders.phone} />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -280,9 +269,9 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                       render={({ field }) => (
                         <FormItem>
                           <Label>
-                            Address <span className="text-destructive">*</span>
+                            {f.labels.address} <span className="text-destructive">*</span>
                           </Label>
-                          <Input {...field} placeholder="123 Main St, City" />
+                          <Input {...field} placeholder={f.placeholders.address} />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -293,8 +282,8 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                       name="website"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Website</Label>
-                          <Input {...field} placeholder="https://agency.com" />
+                          <Label>{f.labels.website}</Label>
+                          <Input {...field} placeholder={f.placeholders.website} />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -310,19 +299,15 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                         return (
                           <FormItem>
                             <Label>
-                              Description <span className="text-destructive">*</span>
+                              {f.labels.description} <span className="text-destructive">*</span>
                             </Label>
                             <Textarea
                               {...field}
                               className={cn("h-24", { "border-destructive": exceeded })}
-                              placeholder="Describe the agency"
+                              placeholder={f.placeholders.description}
                             />
                             <div className="flex justify-end">
-                              <span
-                                className={cn("text-muted-foreground text-xs", {
-                                  "text-destructive": exceeded,
-                                })}
-                              >
+                              <span className={cn("text-muted-foreground text-xs", { "text-destructive": exceeded })}>
                                 {len}/{MAX_DESCRIPTION_LENGTH}
                               </span>
                             </div>
@@ -331,74 +316,35 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                       }}
                     />
 
-                    {/* Arrays — comma-separated */}
-                    <FormField
-                      control={control}
-                      name="specializations"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>
-                            Specializations <span className="text-destructive">*</span>
-                          </Label>
-                          <Input {...field} placeholder="Residential, Commercial, Luxury" />
-                          <p className="text-xs text-muted-foreground">Separate with commas</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={control}
-                      name="areasServed"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>
-                            Areas served <span className="text-destructive">*</span>
-                          </Label>
-                          <Input {...field} placeholder="Downtown, Suburbs, Coastal" />
-                          <p className="text-xs text-muted-foreground">Separate with commas</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={control}
-                      name="languages"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>
-                            Languages <span className="text-destructive">*</span>
-                          </Label>
-                          <Input {...field} placeholder="English, French, Arabic" />
-                          <p className="text-xs text-muted-foreground">Separate with commas</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={control}
-                      name="certifications"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>Certifications</Label>
-                          <Input {...field} placeholder="ISO 9001, RICS, NAR" />
-                          <p className="text-xs text-muted-foreground">Separate with commas</p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {/* Arrays */}
+                    {[
+                      { name: "specializations" as const, label: f.labels.specializations, placeholder: f.placeholders.specializations, required: true },
+                      { name: "areasServed"      as const, label: f.labels.areasServed,      placeholder: f.placeholders.areasServed,      required: true },
+                      { name: "languages"        as const, label: f.labels.languages,        placeholder: f.placeholders.languages,        required: true },
+                      { name: "certifications"   as const, label: f.labels.certifications,   placeholder: f.placeholders.certifications,   required: false },
+                    ].map(({ name, label, placeholder, required }) => (
+                      <FormField
+                        key={name}
+                        control={control}
+                        name={name}
+                        render={({ field }) => (
+                          <FormItem>
+                            <Label>
+                              {label} {required && <span className="text-destructive">*</span>}
+                            </Label>
+                            <Input {...field} placeholder={placeholder} />
+                            <p className="text-xs text-muted-foreground">{f.hints.separateWithCommas}</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ))}
                   </div>
                 </ScrollArea>
 
                 <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleDialogChange(false)}
-                  >
-                    Cancel
+                  <Button type="button" variant="outline" onClick={() => handleDialogChange(false)}>
+                    {t.forms.common.cancel}
                   </Button>
                   <Button
                     type="submit"
@@ -406,7 +352,7 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                     onClick={handleSubmit(onSubmit)}
                     disabled={!formState.isValid || isPending}
                   >
-                    Create Agency
+                    {f.createBtn}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -417,11 +363,11 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
 
       <DialogDiscard
         open={openDiscard}
-        title="Discard changes?"
+        title={f.discard.title}
         onDiscard={handleDiscard}
         onOpenChange={setOpenDiscard}
         onClose={() => setOpenDiscard(false)}
-        description="You've entered details that haven't been saved. Closing now will remove them."
+        description={f.discard.description}
       />
     </>
   );

@@ -15,12 +15,14 @@ import SearchInput from "../_common/molecules/search-input";
 import PropertiesTable, { PropertyDialogType } from "../_common/properties-table";
 import AddProperty from "./dialogs/create-agent/add-agent";
 import DeletePropertyDialog from "./dialogs/delete-agent";
+import { useTranslation } from "@/hooks/use-translation";
 
 const SEARCH_OPTIONS = ["Name", "All Fields"];
 
 function Properties() {
   const router = useRouter();
   const urlSearchParams = useSearchParams();
+  const t = useTranslation();
 
   const {
     selectedProperty,
@@ -75,21 +77,21 @@ function Properties() {
     <>
       {showGlobalEmptyState ? (
         <EmptyTable
-          buttonText="Create Property"
-          title="No Properties created yet!"
-          description="Add your first property listing to get started."
+          buttonText={t.properties.createProperty}
+          title={t.properties.emptyTitle}
+          description={t.properties.emptyDesc}
           buttonOnClick={() => toggleDialog("addProperty", true)}
         />
       ) : (
         <div className="flex flex-col gap-6">
-          {isLoading && <Loading label="Loading Properties" />}
+          {isLoading && <Loading label={t.properties.loading} />}
 
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
               <span className="w-1 h-6 bg-brand-navy rounded-full" />
               <div>
-                <h1 className="text-lg font-semibold text-foreground">Properties</h1>
-                <p className="text-xs text-muted-foreground">Manage your property listings</p>
+                <h1 className="text-lg font-semibold text-foreground">{t.properties.title}</h1>
+                <p className="text-xs text-muted-foreground">{t.properties.subtitle}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -102,7 +104,7 @@ function Properties() {
               />
               <Button onClick={() => toggleDialog("addProperty", true)} className="h-9 px-4">
                 <CirclePlus />
-                Add Property
+                {t.properties.addProperty}
               </Button>
             </div>
           </div>
@@ -117,7 +119,7 @@ function Properties() {
             onPageChange={handlePageChange}
             onSortChange={handleSortingChange}
             setSelectedAgency={setSelectedProperty}
-            emptyMessage={isSearchActive && hasNoResults ? "No results found" : undefined}
+            emptyMessage={isSearchActive && hasNoResults ? t.properties.noResults : undefined}
             toggleDialog={(key: PropertyDialogType, value: boolean) => toggleDialog(key, value)}
           />
         </div>

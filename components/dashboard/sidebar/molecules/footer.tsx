@@ -16,10 +16,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { removeToken } from "@/lib/auth";
+import { useTranslation } from "@/hooks/use-translation";
 
 export default function SideBarFooter() {
   const { isMobile } = useSidebar();
   const router = useRouter();
+  const t = useTranslation();
 
   function handleSignOut() {
     removeToken();
@@ -44,7 +46,7 @@ export default function SideBarFooter() {
                   Okapi Real Estate
                 </span>
                 <span className="truncate text-xs text-sidebar-foreground/50">
-                  Admin
+                  {t.sidebar.admin}
                 </span>
               </div>
             </SidebarMenuButton>
@@ -66,7 +68,7 @@ export default function SideBarFooter() {
               className="text-destructive hover:text-destructive cursor-pointer"
             >
               <LogOut className="mr-2 size-4" />
-              Sign out
+              {t.sidebar.signOut}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

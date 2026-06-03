@@ -31,19 +31,20 @@ import { MAX_DESCRIPTION_LENGTH } from "@/constants";
 import { useUpdateAgency } from "@/lib/queries/agencies";
 import { cn } from "@/lib/utils";
 import { Agency } from "@/types";
+import { useTranslation } from "@/hooks/use-translation";
 import { addAgencySchema, AddAgencyFormValues } from "../create-agency/schema";
 
 const ACCENT_CLASSES = [
-  { label: "Blue", value: "bg-blue-600" },
-  { label: "Green", value: "bg-green-600" },
+  { label: "Blue",   value: "bg-blue-600" },
+  { label: "Green",  value: "bg-green-600" },
   { label: "Purple", value: "bg-purple-600" },
-  { label: "Red", value: "bg-red-600" },
+  { label: "Red",    value: "bg-red-600" },
   { label: "Orange", value: "bg-orange-600" },
   { label: "Indigo", value: "bg-indigo-600" },
-  { label: "Teal", value: "bg-teal-600" },
-  { label: "Pink", value: "bg-pink-600" },
+  { label: "Teal",   value: "bg-teal-600" },
+  { label: "Pink",   value: "bg-pink-600" },
   { label: "Yellow", value: "bg-yellow-600" },
-  { label: "Gray", value: "bg-gray-700" },
+  { label: "Gray",   value: "bg-gray-700" },
 ] as const;
 
 const currentYear = new Date().getFullYear();
@@ -61,6 +62,9 @@ type EditAgencyProps = {
 };
 
 function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
+  const t = useTranslation();
+  const f = t.forms.agency;
+
   const { mutateAsync: updateAgency, isPending } = useUpdateAgency();
 
   const form = useForm<AddAgencyFormValues>({
@@ -101,18 +105,18 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
           languages: splitTrim(values.languages),
           certifications: values.certifications ? splitTrim(values.certifications) : [],
         });
-        toast.success("Agency updated successfully");
+        toast.success(f.toast.updated);
         setOpen(false);
       } catch {
-        toast.error("Failed to update agency. Please try again.");
+        toast.error(f.toast.updateFailed);
       }
     },
-    [updateAgency, agency.id, setOpen],
+    [updateAgency, agency.id, setOpen, f],
   );
 
   return (
     <>
-      {isPending && <Loading label="Saving changes" />}
+      {isPending && <Loading label={f.loading.saving} />}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <Form {...form}>
@@ -120,10 +124,10 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
             <DialogContent className="sm:max-w-xl min-w-[850px] flex flex-col gap-4 max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  Edit Agency
+                  {f.editTitle}
                   <span className="text-sm font-normal text-muted-foreground">— {agency.name}</span>
                 </DialogTitle>
-                <DialogDescription>Update the agency&apos;s information below.</DialogDescription>
+                <DialogDescription>{f.editDesc}</DialogDescription>
               </DialogHeader>
 
               <ScrollArea className="flex-1 overflow-y-auto pr-1">
@@ -135,8 +139,8 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                       name="name"
                       render={({ field }) => (
                         <FormItem className="col-span-2">
-                          <Label>Name <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder="e.g. Coldwell Banker" />
+                          <Label>{f.labels.name} <span className="text-destructive">*</span></Label>
+                          <Input {...field} placeholder={f.placeholders.name} />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -146,7 +150,7 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                       name="monogram"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Monogram <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.monogram} <span className="text-destructive">*</span></Label>
                           <Input {...field} placeholder="CB" maxLength={5} />
                           <FormMessage />
                         </FormItem>
@@ -160,14 +164,14 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                       name="accentClass"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Accent color <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.accentColor} <span className="text-destructive">*</span></Label>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger className="w-full">
                               <div className="flex items-center gap-2 min-w-0">
                                 {field.value && (
                                   <span className={cn("inline-block shrink-0 w-3 h-3 rounded-full", field.value)} />
                                 )}
-                                <SelectValue placeholder="Pick a color" />
+                                <SelectValue placeholder={f.placeholders.pickColor} />
                               </div>
                             </SelectTrigger>
                             <SelectContent>
@@ -188,7 +192,7 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                       name="founded"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Founded <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.founded} <span className="text-destructive">*</span></Label>
                           <Input {...field} type="number" min={1800} max={currentYear} placeholder="2005"
                             onChange={(e) => field.onChange(Number(e.target.value))} />
                           <FormMessage />
@@ -202,8 +206,8 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                     name="tagline"
                     render={({ field }) => (
                       <FormItem>
-                        <Label>Tagline <span className="text-destructive">*</span></Label>
-                        <Input {...field} placeholder="Your trusted real estate partner" />
+                        <Label>{f.labels.tagline} <span className="text-destructive">*</span></Label>
+                        <Input {...field} placeholder={f.placeholders.tagline} />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -216,8 +220,8 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Email <span className="text-destructive">*</span></Label>
-                          <Input {...field} type="email" placeholder="contact@agency.com" />
+                          <Label>{f.labels.email} <span className="text-destructive">*</span></Label>
+                          <Input {...field} type="email" placeholder={f.placeholders.email} />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -227,8 +231,8 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                       name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Phone <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder="+1 234 567 8900" />
+                          <Label>{f.labels.phone} <span className="text-destructive">*</span></Label>
+                          <Input {...field} placeholder={f.placeholders.phone} />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -240,8 +244,8 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                     name="address"
                     render={({ field }) => (
                       <FormItem>
-                        <Label>Address <span className="text-destructive">*</span></Label>
-                        <Input {...field} placeholder="123 Main St, City" />
+                        <Label>{f.labels.address} <span className="text-destructive">*</span></Label>
+                        <Input {...field} placeholder={f.placeholders.address} />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -252,8 +256,8 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                     name="website"
                     render={({ field }) => (
                       <FormItem>
-                        <Label>Website</Label>
-                        <Input {...field} placeholder="https://agency.com" />
+                        <Label>{f.labels.website}</Label>
+                        <Input {...field} placeholder={f.placeholders.website} />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -268,11 +272,11 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                       const exceeded = len > MAX_DESCRIPTION_LENGTH;
                       return (
                         <FormItem>
-                          <Label>Description <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.description} <span className="text-destructive">*</span></Label>
                           <Textarea
                             {...field}
                             className={cn("h-24", { "border-destructive": exceeded })}
-                            placeholder="Describe the agency"
+                            placeholder={f.placeholders.description}
                           />
                           <div className="flex justify-end">
                             <span className={cn("text-muted-foreground text-xs", { "text-destructive": exceeded })}>
@@ -286,10 +290,10 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
 
                   {/* Arrays */}
                   {[
-                    { name: "specializations" as const, label: "Specializations", placeholder: "Residential, Commercial, Luxury", required: true },
-                    { name: "areasServed" as const, label: "Areas served", placeholder: "Downtown, Suburbs, Coastal", required: true },
-                    { name: "languages" as const, label: "Languages", placeholder: "English, French, Arabic", required: true },
-                    { name: "certifications" as const, label: "Certifications", placeholder: "ISO 9001, RICS, NAR", required: false },
+                    { name: "specializations" as const, label: f.labels.specializations, placeholder: f.placeholders.specializations, required: true },
+                    { name: "areasServed"      as const, label: f.labels.areasServed,      placeholder: f.placeholders.areasServed,      required: true },
+                    { name: "languages"        as const, label: f.labels.languages,        placeholder: f.placeholders.languages,        required: true },
+                    { name: "certifications"   as const, label: f.labels.certifications,   placeholder: f.placeholders.certifications,   required: false },
                   ].map(({ name, label, placeholder, required }) => (
                     <FormField
                       key={name}
@@ -301,7 +305,7 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                             {label} {required && <span className="text-destructive">*</span>}
                           </Label>
                           <Input {...field} placeholder={placeholder} />
-                          <p className="text-xs text-muted-foreground">Separate with commas</p>
+                          <p className="text-xs text-muted-foreground">{f.hints.separateWithCommas}</p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -312,7 +316,7 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                  Cancel
+                  {t.forms.common.cancel}
                 </Button>
                 <Button
                   type="submit"
@@ -320,7 +324,7 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                   onClick={handleSubmit(onSubmit)}
                   disabled={!formState.isValid || isPending}
                 >
-                  Save Changes
+                  {t.forms.common.saveChanges}
                 </Button>
               </DialogFooter>
             </DialogContent>

@@ -36,6 +36,7 @@ import { useCreateProperty } from "@/lib/queries/properties";
 import { Agency } from "@/types";
 import { Agent } from "@/types";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/use-translation";
 import { AddPropertyFormValues, addPropertySchema } from "./schema";
 
 // ─── Infinite-scroll hooks ────────────────────────────────────────────────────
@@ -49,7 +50,6 @@ function useInfiniteAgencies() {
   const [search, setSearch] = useState("");
   const [cachedSearch, setCachedSearch] = useState("");
 
-  // Derived-state reset: when search changes, reset pagination immediately
   if (cachedSearch !== search) {
     setCachedSearch(search);
     setPage(1);
@@ -82,14 +82,7 @@ function useInfiniteAgencies() {
     setSearch(query);
   }
 
-  return {
-    items,
-    isLoading: isLoading && page === 1,
-    isLoadingMore,
-    hasMore,
-    loadMore,
-    onSearch,
-  };
+  return { items, isLoading: isLoading && page === 1, isLoadingMore, hasMore, loadMore, onSearch };
 }
 
 function useInfiniteAgents(agencyId: string) {
@@ -98,7 +91,6 @@ function useInfiniteAgents(agencyId: string) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [cachedAgencyId, setCachedAgencyId] = useState(agencyId);
 
-  // Derived-state reset: when agency changes, reset pagination immediately
   if (cachedAgencyId !== agencyId) {
     setCachedAgencyId(agencyId);
     setPage(1);
@@ -127,13 +119,7 @@ function useInfiniteAgents(agencyId: string) {
     }
   }
 
-  return {
-    items,
-    isLoading: isLoading && page === 1,
-    isLoadingMore,
-    hasMore,
-    loadMore,
-  };
+  return { items, isLoading: isLoading && page === 1, isLoadingMore, hasMore, loadMore };
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -141,16 +127,16 @@ function useInfiniteAgents(agencyId: string) {
 const LISTING_TYPES = ["rent", "sale", "commercial"] as const;
 
 const IMAGE_GRADIENT_OPTIONS = [
-  { label: "Blue Sky",     value: "from-blue-400 to-blue-700"    },
-  { label: "Navy Night",   value: "from-slate-700 to-slate-900"  },
-  { label: "Gold Sunrise", value: "from-amber-400 to-orange-600" },
-  { label: "Purple Dusk",  value: "from-purple-400 to-purple-700"},
-  { label: "Emerald",      value: "from-emerald-400 to-emerald-700"},
-  { label: "Rose",         value: "from-rose-400 to-rose-700"    },
-  { label: "Indigo",       value: "from-indigo-400 to-indigo-700"},
-  { label: "Teal",         value: "from-teal-400 to-teal-600"    },
-  { label: "Crimson",      value: "from-red-400 to-red-700"      },
-  { label: "Charcoal",     value: "from-gray-500 to-gray-800"    },
+  { label: "Blue Sky",     value: "from-blue-400 to-blue-700"     },
+  { label: "Navy Night",   value: "from-slate-700 to-slate-900"   },
+  { label: "Gold Sunrise", value: "from-amber-400 to-orange-600"  },
+  { label: "Purple Dusk",  value: "from-purple-400 to-purple-700" },
+  { label: "Emerald",      value: "from-emerald-400 to-emerald-700" },
+  { label: "Rose",         value: "from-rose-400 to-rose-700"     },
+  { label: "Indigo",       value: "from-indigo-400 to-indigo-700" },
+  { label: "Teal",         value: "from-teal-400 to-teal-600"     },
+  { label: "Crimson",      value: "from-red-400 to-red-700"       },
+  { label: "Charcoal",     value: "from-gray-500 to-gray-800"     },
 ] as const;
 
 const CATEGORIES = [
@@ -158,19 +144,13 @@ const CATEGORIES = [
   "penthouse", "land", "office", "warehouse", "retail",
 ] as const;
 
-const ICON_TYPES = ["building", "home", "land", "office", "store", "warehouse"] as const;
-const PERIODS = ["monthly", "yearly"] as const;
+const ICON_TYPES  = ["building", "home", "land", "office", "store", "warehouse"] as const;
+const PERIODS     = ["monthly", "yearly"] as const;
 const TRANSACTIONS = ["rent", "sale"] as const;
 
 const ZONE_OPTIONS = [
-  "Résidentielle",
-  "Commerciale",
-  "Industrielle",
-  "Mixte",
-  "Agricole",
-  "Touristique",
-  "Zone franche",
-  "Zone portuaire",
+  "Résidentielle", "Commerciale", "Industrielle", "Mixte",
+  "Agricole", "Touristique", "Zone franche", "Zone portuaire",
 ];
 
 const AMENITY_SUGGESTIONS: Record<string, string[]> = {
@@ -185,14 +165,6 @@ const AMENITY_SUGGESTIONS: Record<string, string[]> = {
   warehouse:  ["Quai de chargement", "Parking poids lourds", "Sécurité", "Électricité triphasée", "Pont roulant", "Sprinklers", "Bureau intégré"],
   retail:     ["Parking", "Vitrine", "Climatisation", "Réserve", "Cave", "Accès PMR", "Alarme"],
 };
-
-const STEPS = [
-  { label: "Affectation",    description: "Agence & agent"          },
-  { label: "Annonce",        description: "Type, catégorie & prix"  },
-  { label: "Localisation",   description: "Adresse & caractéristiques" },
-  { label: "Médias",         description: "Visuels & équipements"   },
-  { label: "Légal & Marché", description: "Détails optionnels"      },
-];
 
 const STEP_REQUIRED_FIELDS: Array<(keyof AddPropertyFormValues)[]> = [
   ["agencyId", "agentId"],
@@ -212,7 +184,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error("Lecture du fichier échouée"));
+    reader.onerror = () => reject(new Error("File read failed"));
     reader.readAsDataURL(file);
   });
 }
@@ -228,50 +200,35 @@ function isAmenitySelected(current: string, tag: string): boolean {
 function toggleAmenityTag(current: string, tag: string): string {
   const list = splitTrim(current);
   const idx = list.findIndex((a) => a.toLowerCase() === tag.toLowerCase());
-  if (idx >= 0) {
-    list.splice(idx, 1);
-  } else {
-    list.push(tag);
-  }
+  if (idx >= 0) list.splice(idx, 1);
+  else list.push(tag);
   return list.join(", ");
 }
 
 // ─── Step Indicator ───────────────────────────────────────────────────────────
 
-function StepIndicator({ current }: { current: number }) {
+function StepIndicator({ current, steps }: { current: number; steps: { label: string }[] }) {
   return (
     <div className="flex items-center justify-center select-none">
-      {STEPS.map((s, i) => (
+      {steps.map((s, i) => (
         <div key={i} className="flex items-center">
           <div className="flex flex-col items-center gap-1">
             <div
               className={cn(
                 "w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all duration-200",
-                i < current
-                  ? "bg-brand-navy border-brand-navy text-white"
-                  : i === current
-                  ? "bg-brand-blue border-brand-blue text-white"
-                  : "bg-background border-border text-muted-foreground",
+                i < current  ? "bg-brand-navy border-brand-navy text-white"
+                : i === current ? "bg-brand-blue border-brand-blue text-white"
+                : "bg-background border-border text-muted-foreground",
               )}
             >
               {i < current ? <Check className="w-3.5 h-3.5" /> : i + 1}
             </div>
-            <span
-              className={cn(
-                "text-[10px] font-medium whitespace-nowrap",
-                i === current ? "text-brand-blue" : "text-muted-foreground",
-              )}
-            >
+            <span className={cn("text-[10px] font-medium whitespace-nowrap", i === current ? "text-brand-blue" : "text-muted-foreground")}>
               {s.label}
             </span>
           </div>
-          {i < STEPS.length - 1 && (
-            <div
-              className={cn(
-                "h-0.5 w-10 mb-4 mx-1 transition-all duration-300",
-                i < current ? "bg-brand-navy" : "bg-border",
-              )}
-            />
+          {i < steps.length - 1 && (
+            <div className={cn("h-0.5 w-10 mb-4 mx-1 transition-all duration-300", i < current ? "bg-brand-navy" : "bg-border")} />
           )}
         </div>
       ))}
@@ -290,6 +247,9 @@ type AddPropertyProps = {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
+  const t = useTranslation();
+  const fp = t.forms.property;
+
   const { mutateAsync: createProperty, isPending } = useCreateProperty();
 
   const [step, setStep] = useState(0);
@@ -302,6 +262,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
 
   const agencies = useInfiniteAgencies();
   const agentsDropdown = useInfiniteAgents(agencyIdForAgents);
+
+  const STEPS = fp.steps as readonly { label: string; description: string }[];
 
   const form = useForm<AddPropertyFormValues>({
     resolver: zodResolver(addPropertySchema),
@@ -343,17 +305,15 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
   });
 
   const { reset, control, watch, formState } = form;
-
   const watchedCategory = watch("category");
 
-  // ── Gallery helpers ─────────────────────────────────────────────────────────
+  // ── Gallery helpers ──────────────────────────────────────────────────────────
 
   function handleAddFiles(files: File[]) {
     const imageFiles = files.filter((f) => f.type.startsWith("image/"));
     const remaining = MAX_GALLERY_IMAGES - galleryItems.length;
     if (remaining <= 0) return;
-    const toAdd = imageFiles.slice(0, remaining);
-    const newItems: GalleryItem[] = toAdd.map((f) => ({
+    const newItems: GalleryItem[] = imageFiles.slice(0, remaining).map((f) => ({
       file: f,
       previewUrl: URL.createObjectURL(f),
     }));
@@ -381,7 +341,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
     setGalleryMode("urls");
   }
 
-  // ── Navigation ──────────────────────────────────────────────────────────────
+  // ── Navigation ───────────────────────────────────────────────────────────────
 
   async function handleNext() {
     const fields = STEP_REQUIRED_FIELDS[step];
@@ -414,11 +374,10 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
     setOpenDiscard(false);
   }
 
-  // ── Submit ──────────────────────────────────────────────────────────────────
+  // ── Submit ───────────────────────────────────────────────────────────────────
 
   const onSubmit = useCallback(
     async (values: AddPropertyFormValues) => {
-      // Guard: only submit from the last step to prevent button-swap timing bug
       if (step !== STEPS.length - 1) return;
       try {
         let galleryUrls: string[];
@@ -443,7 +402,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
           availableFrom: values.availableFrom || undefined,
         };
         await createProperty(payload);
-        toast.success("Propriété créée avec succès");
+        toast.success(fp.toast.created);
         reset();
         setStep(0);
         setAgencyIdForAgents("");
@@ -451,19 +410,19 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
         setToggle(false);
         resetCurrentPage?.();
       } catch {
-        toast.error("Échec de la création. Veuillez réessayer.");
+        toast.error(fp.toast.createFailed);
       }
     },
-    [step, galleryMode, galleryItems, createProperty, reset, setToggle, resetCurrentPage],
+    [step, STEPS.length, galleryMode, galleryItems, createProperty, reset, setToggle, resetCurrentPage, fp],
   );
 
   const isLastStep = step === STEPS.length - 1;
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <>
-      {isPending && <Loading label="Création en cours…" />}
+      {isPending && <Loading label={fp.loading.creating} />}
 
       <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="sm:max-w-[580px] p-0 gap-0 overflow-hidden">
@@ -472,22 +431,25 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
               {/* Header */}
               <div className="px-6 pt-6 pb-4 flex flex-col gap-1 border-b">
                 <DialogHeader>
-                  <DialogTitle>Ajouter une propriété</DialogTitle>
+                  <DialogTitle>{fp.addTitle}</DialogTitle>
                   <DialogDescription>
-                    {STEPS[step].description} — étape {step + 1} sur {STEPS.length}
+                    {STEPS[step].description} —{" "}
+                    {fp.stepOf
+                      .replace("{current}", String(step + 1))
+                      .replace("{total}", String(STEPS.length))}
                   </DialogDescription>
                 </DialogHeader>
               </div>
 
               {/* Step indicator */}
               <div className="px-6 pt-5 pb-3">
-                <StepIndicator current={step} />
+                <StepIndicator current={step} steps={[...STEPS]} />
               </div>
 
               {/* Step content */}
               <div className="px-6 pb-4 min-h-[280px] flex flex-col gap-4">
 
-                {/* ── Étape 1 : Affectation ────────────────────────────── */}
+                {/* Step 1 — Assignment */}
                 {step === 0 && (
                   <>
                     <FormField
@@ -495,7 +457,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       name="agencyId"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Agence <span className="text-destructive">*</span></Label>
+                          <Label>{fp.labels.agency} <span className="text-destructive">*</span></Label>
                           <InfiniteCombobox
                             value={field.value}
                             onChange={(value) => {
@@ -503,8 +465,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                               setAgencyIdForAgents(value);
                               form.setValue("agentId", "");
                             }}
-                            placeholder="Sélectionner une agence"
-                            searchPlaceholder="Rechercher une agence…"
+                            placeholder={fp.placeholders.selectAgency}
+                            searchPlaceholder={fp.placeholders.searchAgency}
                             items={agencies.items}
                             isLoading={agencies.isLoading}
                             isLoadingMore={agencies.isLoadingMore}
@@ -521,16 +483,12 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       name="agentId"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Agent <span className="text-destructive">*</span></Label>
+                          <Label>{fp.labels.agent} <span className="text-destructive">*</span></Label>
                           <InfiniteCombobox
                             value={field.value}
                             onChange={field.onChange}
-                            placeholder={
-                              agencyIdForAgents
-                                ? "Sélectionner un agent"
-                                : "Sélectionnez d'abord une agence"
-                            }
-                            searchPlaceholder="Rechercher un agent…"
+                            placeholder={agencyIdForAgents ? fp.placeholders.selectAgent : fp.placeholders.selectAgentFirst}
+                            searchPlaceholder={fp.placeholders.searchAgent}
                             items={agentsDropdown.items}
                             isLoading={agentsDropdown.isLoading}
                             isLoadingMore={agentsDropdown.isLoadingMore}
@@ -545,7 +503,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                   </>
                 )}
 
-                {/* ── Étape 2 : Détails de l'annonce ──────────────────── */}
+                {/* Step 2 — Listing details */}
                 {step === 1 && (
                   <>
                     <FormField
@@ -553,8 +511,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       name="title"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Titre <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder="Appartement luxueux 3 chambres" />
+                          <Label>{fp.labels.title} <span className="text-destructive">*</span></Label>
+                          <Input {...field} placeholder={fp.placeholders.propertyTitle} />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -564,8 +522,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       name="subtitle"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Sous-titre <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder="Vue mer au centre-ville" />
+                          <Label>{fp.labels.subtitle} <span className="text-destructive">*</span></Label>
+                          <Input {...field} placeholder={fp.placeholders.propertySubtitle} />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -576,12 +534,12 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="listingType"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Type d'annonce <span className="text-destructive">*</span></Label>
+                            <Label>{fp.labels.listingType} <span className="text-destructive">*</span></Label>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                {LISTING_TYPES.map((t) => (
-                                  <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                                {LISTING_TYPES.map((v) => (
+                                  <SelectItem key={v} value={v} className="capitalize">{v}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -594,7 +552,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="category"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Catégorie <span className="text-destructive">*</span></Label>
+                            <Label>{fp.labels.category} <span className="text-destructive">*</span></Label>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                               <SelectContent>
@@ -612,12 +570,12 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="iconType"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Icône <span className="text-destructive">*</span></Label>
+                            <Label>{fp.labels.icon} <span className="text-destructive">*</span></Label>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                {ICON_TYPES.map((t) => (
-                                  <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                                {ICON_TYPES.map((v) => (
+                                  <SelectItem key={v} value={v} className="capitalize">{v}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -632,14 +590,9 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="price"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Prix <span className="text-destructive">*</span></Label>
-                            <Input
-                              {...field}
-                              type="number"
-                              min={0}
-                              placeholder="500000"
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
+                            <Label>{fp.labels.price} <span className="text-destructive">*</span></Label>
+                            <Input {...field} type="number" min={0} placeholder="500000"
+                              onChange={(e) => field.onChange(Number(e.target.value))} />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -649,7 +602,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="currency"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Devise <span className="text-destructive">*</span></Label>
+                            <Label>{fp.labels.currency} <span className="text-destructive">*</span></Label>
                             <Input {...field} placeholder="USD" />
                             <FormMessage />
                           </FormItem>
@@ -660,16 +613,14 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="period"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Période</Label>
+                            <Label>{fp.labels.period}</Label>
                             <Select
                               onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}
                               value={field.value || "__none__"}
                             >
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
+                              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="__none__">Aucune</SelectItem>
+                                <SelectItem value="__none__">{fp.placeholders.none}</SelectItem>
                                 {PERIODS.map((p) => (
                                   <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>
                                 ))}
@@ -683,7 +634,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                   </>
                 )}
 
-                {/* ── Étape 3 : Localisation & Caractéristiques ────────── */}
+                {/* Step 3 — Location */}
                 {step === 2 && (
                   <>
                     <div className="grid grid-cols-3 gap-3">
@@ -692,7 +643,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="city"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Ville <span className="text-destructive">*</span></Label>
+                            <Label>{fp.labels.city} <span className="text-destructive">*</span></Label>
                             <Input {...field} placeholder="Kinshasa" />
                             <FormMessage />
                           </FormItem>
@@ -703,7 +654,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="suburb"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Commune <span className="text-destructive">*</span></Label>
+                            <Label>{fp.labels.suburb} <span className="text-destructive">*</span></Label>
                             <Input {...field} placeholder="Gombe" />
                             <FormMessage />
                           </FormItem>
@@ -714,7 +665,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="neighborhood"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Quartier <span className="text-destructive">*</span></Label>
+                            <Label>{fp.labels.neighborhood} <span className="text-destructive">*</span></Label>
                             <Input {...field} placeholder="Lingwala" />
                             <FormMessage />
                           </FormItem>
@@ -728,16 +679,11 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         render={({ field }) => (
                           <FormItem>
                             <Label>
-                              {watchedCategory === "office" ? "Pièces" : "Chambres"}{" "}
+                              {watchedCategory === "office" ? fp.labels.bedroomsOffice : fp.labels.bedrooms}{" "}
                               <span className="text-destructive">*</span>
                             </Label>
-                            <Input
-                              {...field}
-                              type="number"
-                              min={0}
-                              placeholder="3"
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
+                            <Input {...field} type="number" min={0} placeholder="3"
+                              onChange={(e) => field.onChange(Number(e.target.value))} />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -747,14 +693,9 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="bathrooms"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Salles de bain <span className="text-destructive">*</span></Label>
-                            <Input
-                              {...field}
-                              type="number"
-                              min={0}
-                              placeholder="2"
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
+                            <Label>{fp.labels.bathrooms} <span className="text-destructive">*</span></Label>
+                            <Input {...field} type="number" min={0} placeholder="2"
+                              onChange={(e) => field.onChange(Number(e.target.value))} />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -764,15 +705,9 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="areaSqm"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Surface (m²) <span className="text-destructive">*</span></Label>
-                            <Input
-                              {...field}
-                              type="number"
-                              min={0}
-                              step={0.1}
-                              placeholder="120"
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
+                            <Label>{fp.labels.areaSqm} <span className="text-destructive">*</span></Label>
+                            <Input {...field} type="number" min={0} step={0.1} placeholder="120"
+                              onChange={(e) => field.onChange(Number(e.target.value))} />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -781,7 +716,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                   </>
                 )}
 
-                {/* ── Étape 4 : Médias & Équipements ──────────────────── */}
+                {/* Step 4 — Media & amenities */}
                 {step === 3 && (
                   <>
                     <FormField
@@ -789,31 +724,21 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       name="imageGradient"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Dégradé d'image <span className="text-destructive">*</span></Label>
+                          <Label>{fp.labels.imageGradient} <span className="text-destructive">*</span></Label>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger className="w-full">
                               <div className="flex items-center gap-2 min-w-0">
                                 {field.value && (
-                                  <span
-                                    className={cn(
-                                      "inline-block shrink-0 w-12 h-4 rounded-sm bg-linear-to-r",
-                                      field.value,
-                                    )}
-                                  />
+                                  <span className={cn("inline-block shrink-0 w-12 h-4 rounded-sm bg-linear-to-r", field.value)} />
                                 )}
-                                <SelectValue placeholder="Choisir un dégradé" />
+                                <SelectValue placeholder={fp.placeholders.selectGradient} />
                               </div>
                             </SelectTrigger>
                             <SelectContent>
                               {IMAGE_GRADIENT_OPTIONS.map((opt) => (
                                 <SelectItem key={opt.value} value={opt.value}>
                                   <div className="flex items-center gap-2">
-                                    <span
-                                      className={cn(
-                                        "inline-block w-12 h-4 rounded-sm bg-linear-to-r shrink-0",
-                                        opt.value,
-                                      )}
-                                    />
+                                    <span className={cn("inline-block w-12 h-4 rounded-sm bg-linear-to-r shrink-0", opt.value)} />
                                     {opt.label}
                                   </div>
                                 </SelectItem>
@@ -830,16 +755,14 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       render={({ field }) => (
                         <FormItem>
                           <div className="flex items-center justify-between">
-                            <Label>Galerie photos</Label>
+                            <Label>{fp.labels.gallery}</Label>
                             <div className="flex items-center gap-0.5 rounded-md border p-0.5 bg-muted">
                               <button
                                 type="button"
                                 onClick={() => handleGalleryModeChange("urls")}
                                 className={cn(
                                   "flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors",
-                                  galleryMode === "urls"
-                                    ? "bg-background shadow-sm text-foreground"
-                                    : "text-muted-foreground hover:text-foreground",
+                                  galleryMode === "urls" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
                                 )}
                               >
                                 <Link2 className="w-3 h-3" />
@@ -850,9 +773,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                                 onClick={() => handleGalleryModeChange("images")}
                                 className={cn(
                                   "flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors",
-                                  galleryMode === "images"
-                                    ? "bg-background shadow-sm text-foreground"
-                                    : "text-muted-foreground hover:text-foreground",
+                                  galleryMode === "images" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
                                 )}
                               >
                                 <ImageIcon className="w-3 h-3" />
@@ -863,17 +784,15 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
 
                           {galleryMode === "urls" ? (
                             <>
-                              <Input {...field} placeholder="https://img1.jpg, https://img2.jpg" />
-                              <p className="text-xs text-muted-foreground">Séparer par des virgules</p>
+                              <Input {...field} placeholder={fp.placeholders.galleryUrls} />
+                              <p className="text-xs text-muted-foreground">{fp.placeholders.separateWithCommas}</p>
                             </>
                           ) : (
                             <>
                               <div
                                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                                 onDragLeave={(e) => {
-                                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                                    setIsDragging(false);
-                                  }
+                                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false);
                                 }}
                                 onDrop={(e) => {
                                   e.preventDefault();
@@ -883,16 +802,14 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                                 onClick={() => fileInputRef.current?.click()}
                                 className={cn(
                                   "border-2 border-dashed rounded-lg py-5 px-4 cursor-pointer text-center transition-colors select-none",
-                                  isDragging
-                                    ? "border-brand-blue bg-brand-blue/5"
-                                    : "border-border hover:border-brand-navy/50",
+                                  isDragging ? "border-brand-blue bg-brand-blue/5" : "border-border hover:border-brand-navy/50",
                                   galleryItems.length >= MAX_GALLERY_IMAGES && "pointer-events-none opacity-60",
                                 )}
                               >
                                 <UploadCloud className="w-7 h-7 mx-auto mb-1.5 text-muted-foreground" />
                                 <p className="text-sm text-muted-foreground">
-                                  Glisser-déposer ou{" "}
-                                  <span className="text-brand-navy font-medium underline">parcourir</span>
+                                  {fp.placeholders.dragOrBrowse}{" "}
+                                  <span className="text-brand-navy font-medium underline">{fp.placeholders.browse}</span>
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                   {galleryItems.length}/{MAX_GALLERY_IMAGES} images • JPG, PNG, WebP
@@ -920,10 +837,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                                       />
                                       <button
                                         type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleRemoveGalleryItem(idx);
-                                        }}
+                                        onClick={(e) => { e.stopPropagation(); handleRemoveGalleryItem(idx); }}
                                         className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                                       >
                                         <X className="w-2.5 h-2.5" />
@@ -945,7 +859,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         const suggestions = AMENITY_SUGGESTIONS[watchedCategory] ?? [];
                         return (
                           <FormItem>
-                            <Label>Équipements <span className="text-destructive">*</span></Label>
+                            <Label>{fp.labels.amenities} <span className="text-destructive">*</span></Label>
                             {suggestions.length > 0 && (
                               <div className="flex flex-wrap gap-1.5 pb-1">
                                 {suggestions.map((tag) => {
@@ -954,9 +868,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                                     <button
                                       key={tag}
                                       type="button"
-                                      onClick={() =>
-                                        field.onChange(toggleAmenityTag(field.value, tag))
-                                      }
+                                      onClick={() => field.onChange(toggleAmenityTag(field.value, tag))}
                                       className={cn(
                                         "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-colors",
                                         selected
@@ -971,8 +883,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                                 })}
                               </div>
                             )}
-                            <Input {...field} placeholder="Piscine, Garage, Ascenseur…" />
-                            <p className="text-xs text-muted-foreground">Cliquez sur les tags ou saisissez manuellement, séparés par des virgules</p>
+                            <Input {...field} placeholder={fp.placeholders.amenities} />
+                            <p className="text-xs text-muted-foreground">{fp.placeholders.amenitiesHint}</p>
                             <FormMessage />
                           </FormItem>
                         );
@@ -984,18 +896,16 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="transaction"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>Transaction</Label>
+                            <Label>{fp.labels.transaction}</Label>
                             <Select
                               onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}
                               value={field.value || "__none__"}
                             >
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
+                              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="__none__">Aucune</SelectItem>
-                                {TRANSACTIONS.map((t) => (
-                                  <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                                <SelectItem value="__none__">{fp.placeholders.none}</SelectItem>
+                                {TRANSACTIONS.map((v) => (
+                                  <SelectItem key={v} value={v} className="capitalize">{v}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -1004,27 +914,19 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         )}
                       />
                       <div className="flex items-end gap-4 pb-1">
-                        {(
-                          [
-                            { name: "verified", label: "Vérifié"  },
-                            { name: "premium",  label: "Premium"  },
-                            { name: "isNew",    label: "Nouveau"  },
-                          ] as const
-                        ).map(({ name, label }) => (
+                        {([
+                          { name: "verified" as const, label: fp.labels.verified },
+                          { name: "premium"  as const, label: fp.labels.premium  },
+                          { name: "isNew"    as const, label: fp.labels.isNew    },
+                        ]).map(({ name, label }) => (
                           <FormField
                             key={name}
                             control={control}
                             name={name}
                             render={({ field }) => (
                               <FormItem className="flex items-center gap-2 space-y-0">
-                                <Checkbox
-                                  id={name}
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                                <Label htmlFor={name} className="text-sm font-normal cursor-pointer">
-                                  {label}
-                                </Label>
+                                <Checkbox id={name} checked={field.value} onCheckedChange={field.onChange} />
+                                <Label htmlFor={name} className="text-sm font-normal cursor-pointer">{label}</Label>
                               </FormItem>
                             )}
                           />
@@ -1039,12 +941,12 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         const exceeded = len > MAX_DESCRIPTION_LENGTH;
                         return (
                           <FormItem>
-                            <Label>Description</Label>
+                            <Label>{fp.labels.description}</Label>
                             <Textarea
                               {...field}
                               value={field.value ?? ""}
                               className={cn("h-20", { "border-destructive": exceeded })}
-                              placeholder="Décrivez la propriété (optionnel)"
+                              placeholder={fp.placeholders.describeProperty}
                             />
                             <div className="flex justify-end">
                               <span className={cn("text-muted-foreground text-xs", { "text-destructive": exceeded })}>
@@ -1058,146 +960,132 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                   </>
                 )}
 
-                {/* ── Étape 5 : Légal & Marché ────────────────────────── */}
+                {/* Step 5 — Legal & Market */}
                 {step === 4 && (
-                  <>
-                    <div className="grid grid-cols-2 gap-3">
-                      <FormField
-                        control={control}
-                        name="reference"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label>Référence</Label>
-                            <Input {...field} placeholder="REF-001" />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={control}
-                        name="zone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label>Zone</Label>
-                            <Select
-                              onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}
-                              value={field.value || "__none__"}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Choisir une zone" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Non spécifiée</SelectItem>
-                                {ZONE_OPTIONS.map((z) => (
-                                  <SelectItem key={z} value={z}>{z}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={control}
-                        name="brokerLicense"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label>Licence courtier</Label>
-                            <Input {...field} placeholder="BRN-123" />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={control}
-                        name="agentLicense"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label>Licence agent</Label>
-                            <Input {...field} placeholder="ALN-456" />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={control}
-                        name="permitNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label>N° de permis</Label>
-                            <Input {...field} placeholder="PM-789" />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={control}
-                        name="availableFrom"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label>Disponible à partir du</Label>
-                            <Input {...field} type="date" />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={control}
-                        name="averagePriceArea"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label>Prix moy. / m²</Label>
-                            <Input
-                              type="number"
-                              min={0}
-                              placeholder="4200"
-                              value={field.value ?? ""}
-                              onChange={(e) =>
-                                field.onChange(e.target.value === "" ? undefined : Number(e.target.value))
-                              }
-                            />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={control}
-                        name="averageSizeArea"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label>Surface moy. / m²</Label>
-                            <Input
-                              type="number"
-                              min={0}
-                              placeholder="85"
-                              value={field.value ?? ""}
-                              onChange={(e) =>
-                                field.onChange(e.target.value === "" ? undefined : Number(e.target.value))
-                              }
-                            />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={control}
+                      name="reference"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>{fp.labels.reference}</Label>
+                          <Input {...field} placeholder="REF-001" />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={control}
+                      name="zone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>{fp.labels.zone}</Label>
+                          <Select
+                            onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}
+                            value={field.value || "__none__"}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder={fp.placeholders.selectZone} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">{fp.placeholders.notSpecified}</SelectItem>
+                              {ZONE_OPTIONS.map((z) => (
+                                <SelectItem key={z} value={z}>{z}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={control}
+                      name="brokerLicense"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>{fp.labels.brokerLicense}</Label>
+                          <Input {...field} placeholder="BRN-123" />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={control}
+                      name="agentLicense"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>{fp.labels.agentLicense}</Label>
+                          <Input {...field} placeholder="ALN-456" />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={control}
+                      name="permitNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>{fp.labels.permitNumber}</Label>
+                          <Input {...field} placeholder="PM-789" />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={control}
+                      name="availableFrom"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>{fp.labels.availableFrom}</Label>
+                          <Input {...field} type="date" />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={control}
+                      name="averagePriceArea"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>{fp.labels.avgPriceArea}</Label>
+                          <Input
+                            type="number" min={0} placeholder="4200"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={control}
+                      name="averageSizeArea"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>{fp.labels.avgSizeArea}</Label>
+                          <Input
+                            type="number" min={0} placeholder="85"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 )}
               </div>
 
               {/* Footer */}
               <div className="px-6 py-4 border-t flex items-center justify-between gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => handleDialogChange(false)}
-                >
-                  Annuler
+                <Button type="button" variant="outline" onClick={() => handleDialogChange(false)}>
+                  {fp.buttons.cancel}
                 </Button>
 
                 <div className="flex items-center gap-2">
                   {step > 0 && (
                     <Button type="button" variant="outline" onClick={handleBack}>
-                      Retour
+                      {fp.buttons.back}
                     </Button>
                   )}
                   {isLastStep ? (
@@ -1207,11 +1095,11 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       disabled={isPending}
                       onClick={() => form.handleSubmit(onSubmit)()}
                     >
-                      Créer la propriété
+                      {fp.buttons.create}
                     </Button>
                   ) : (
                     <Button type="button" onClick={handleNext}>
-                      Suivant
+                      {fp.buttons.next}
                     </Button>
                   )}
                 </div>
@@ -1223,11 +1111,11 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
 
       <DialogDiscard
         open={openDiscard}
-        title="Annuler les modifications ?"
+        title={fp.discard.title}
         onDiscard={handleDiscard}
         onOpenChange={setOpenDiscard}
         onClose={() => setOpenDiscard(false)}
-        description="Vous avez saisi des informations qui n'ont pas été enregistrées. Fermer maintenant les supprimera."
+        description={fp.discard.description}
       />
     </>
   );
