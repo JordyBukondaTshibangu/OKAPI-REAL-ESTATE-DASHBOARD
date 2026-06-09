@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -30,25 +30,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { MAX_DESCRIPTION_LENGTH } from "@/constants";
 import { useUpdateAgent } from "@/lib/queries/agents";
 import { useAgencies } from "@/lib/queries/agencies";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Agent } from "@/types";
 import { useTranslation } from "@/hooks/use-translation";
 import { addAgentSchema, AddAgentFormValues } from "../create-agent/schema";
+import { AGENT_SPECIALIZATIONS } from "../create-agent/constants";
 
 const AGENT_TITLES = ["SUPERAGENT", "AGENT EXCLUSIF", "AGENT"] as const;
 const currentYear = new Date().getFullYear();
 
 const PHOTO_GRADIENT_OPTIONS = [
-  { label: "Blue Sky",    value: "from-blue-400 to-blue-600" },
-  { label: "Navy Night",  value: "from-slate-700 to-slate-900" },
-  { label: "Gold Sunrise",value: "from-amber-400 to-orange-600" },
-  { label: "Purple Dusk", value: "from-purple-400 to-purple-700" },
-  { label: "Emerald",     value: "from-emerald-400 to-emerald-700" },
-  { label: "Rose",        value: "from-rose-400 to-rose-700" },
-  { label: "Indigo",      value: "from-indigo-400 to-indigo-700" },
-  { label: "Teal",        value: "from-teal-400 to-teal-600" },
-  { label: "Crimson",     value: "from-red-400 to-red-700" },
-  { label: "Charcoal",    value: "from-gray-500 to-gray-800" },
+  { label: "Blue Sky",     value: "from-blue-400 to-blue-600" },
+  { label: "Navy Night",   value: "from-slate-700 to-slate-900" },
+  { label: "Gold Sunrise", value: "from-amber-400 to-orange-600" },
+  { label: "Purple Dusk",  value: "from-purple-400 to-purple-700" },
+  { label: "Emerald",      value: "from-emerald-400 to-emerald-700" },
+  { label: "Rose",         value: "from-rose-400 to-rose-700" },
+  { label: "Indigo",       value: "from-indigo-400 to-indigo-700" },
+  { label: "Teal",         value: "from-teal-400 to-teal-600" },
+  { label: "Crimson",      value: "from-red-400 to-red-700" },
+  { label: "Charcoal",     value: "from-gray-500 to-gray-800" },
 ] as const;
 
 const ACCENT_CLASSES = [
@@ -85,7 +87,10 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
   const { mutateAsync: updateAgent, isPending } = useUpdateAgent();
   const { data: agenciesData, isLoading: agenciesLoading } = useAgencies({ pageSize: 200 });
 
-  const [saved, setSaved] = useState(false);
+  // Photo upload state — seed preview with current photo
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>(agent.photo ?? "");
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   const form = useForm<AddAgentFormValues>({
     resolver: zodResolver(addAgentSchema),
@@ -113,6 +118,29 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
 
   const { handleSubmit, control, formState, setValue } = form;
 
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoPreview(URL.createObjectURL(file));
+    try {
+      setPhotoUploading(true);
+      const { data: presigned } = await api.post<{ key: string; url: string }[]>(
+        "/api/uploads/presign",
+        { files: [{ filename: file.name, contentType: file.type }] },
+      );
+      const { key, url } = presigned[0];
+      await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      setValue("photo", key, { shouldValidate: true });
+    } catch {
+      toast.error("Photo upload failed");
+      setPhotoPreview(agent.photo ?? "");
+      setValue("photo", agent.photo ?? "", { shouldValidate: true });
+    } finally {
+      setPhotoUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   const onSubmit = useCallback(
     async (values: AddAgentFormValues) => {
       try {
@@ -123,7 +151,6 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
         };
         await updateAgent(payload);
         toast.success(f.toast.updated);
-        setSaved(true);
         setOpen(false);
       } catch {
         toast.error(f.toast.updateFailed);
@@ -133,9 +160,6 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
   );
 
   const agencies = agenciesData?.data ?? [];
-
-  // suppress "saved" lint warning — kept for potential future use
-  void saved;
 
   return (
     <>
@@ -155,6 +179,7 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
 
               <ScrollArea className="flex-1 overflow-y-auto pr-1">
                 <div className="flex flex-col gap-4 pb-2">
+
                   {/* Agency */}
                   <FormField
                     control={control}
@@ -222,13 +247,23 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
+                    {/* Specialization — dropdown */}
                     <FormField
                       control={control}
                       name="specialization"
                       render={({ field }) => (
                         <FormItem>
                           <Label>{f.labels.specialization} <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder={f.placeholders.specialization} />
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder={f.placeholders.specialization} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {AGENT_SPECIALIZATIONS.map(({ label, value }) => (
+                                <SelectItem key={value} value={value}>{label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -344,8 +379,61 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                     name="photo"
                     render={({ field }) => (
                       <FormItem>
-                        <Label>{f.labels.photoUrl} <span className="text-destructive">*</span></Label>
-                        <Input {...field} placeholder="https://example.com/photo.jpg" />
+                        <Label>{f.labels.photo} <span className="text-destructive">*</span></Label>
+                        <div className="flex items-start gap-3">
+                          {/* Thumbnail / spinner */}
+                          <div
+                            className="shrink-0 w-16 h-16 rounded-lg border border-dashed border-muted-foreground/30 bg-muted flex items-center justify-center overflow-hidden cursor-pointer"
+                            onClick={() => !photoUploading && fileInputRef.current?.click()}
+                          >
+                            {photoUploading ? (
+                              <svg className="animate-spin w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+                              </svg>
+                            ) : photoPreview ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={photoPreview}
+                                alt="Photo preview"
+                                className="w-full h-full object-cover"
+                                onError={() => setPhotoPreview("")}
+                              />
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground text-center px-1">
+                                {f.hints.clickToUpload}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* URL input + upload button */}
+                          <div className="flex-1 flex flex-col gap-2">
+                            <Input
+                              {...field}
+                              placeholder="https://example.com/photo.jpg"
+                              disabled={photoUploading}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                setPhotoPreview(e.target.value);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              disabled={photoUploading}
+                              onClick={() => fileInputRef.current?.click()}
+                              className="text-xs text-brand-blue hover:underline text-left disabled:opacity-50"
+                            >
+                              {photoUploading ? "Uploading…" : f.hints.orChooseFile}
+                            </button>
+                          </div>
+                        </div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -463,7 +551,7 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                   type="submit"
                   className="bg-gradient-primary"
                   onClick={handleSubmit(onSubmit)}
-                  disabled={!formState.isValid || isPending}
+                  disabled={!formState.isValid || isPending || photoUploading}
                 >
                   {t.forms.common.saveChanges}
                 </Button>

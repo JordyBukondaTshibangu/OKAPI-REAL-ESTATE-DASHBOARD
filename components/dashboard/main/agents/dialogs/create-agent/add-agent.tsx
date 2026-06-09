@@ -33,7 +33,9 @@ import { MAX_DESCRIPTION_LENGTH } from "@/constants";
 import { useCreateAgent } from "@/lib/queries/agents";
 import { useAgencies } from "@/lib/queries/agencies";
 import { useTranslation } from "@/hooks/use-translation";
+import { api } from "@/lib/api";
 import { addAgentSchema, AddAgentFormValues } from "./schema";
+import { AGENT_SPECIALIZATIONS } from "./constants";
 
 const AGENT_TITLES = ["SUPERAGENT", "AGENT EXCLUSIF", "AGENT"] as const;
 const currentYear = new Date().getFullYear();
@@ -105,17 +107,31 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
   const { reset, handleSubmit, control, watch, formState, setValue } = form;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
+  const [photoUploading, setPhotoUploading] = useState(false);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setPhotoPreview(dataUrl);
-      setValue("photo", dataUrl, { shouldValidate: true });
-    };
-    reader.readAsDataURL(file);
+    // Show local preview immediately while upload is in progress
+    setPhotoPreview(URL.createObjectURL(file));
+    try {
+      setPhotoUploading(true);
+      const { data: presigned } = await api.post<{ key: string; url: string }[]>(
+        "/api/uploads/presign",
+        { files: [{ filename: file.name, contentType: file.type }] },
+      );
+      const { key, url } = presigned[0];
+      await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      setValue("photo", key, { shouldValidate: true });
+    } catch {
+      toast.error("Photo upload failed");
+      setPhotoPreview("");
+      setValue("photo", "", { shouldValidate: true });
+    } finally {
+      setPhotoUploading(false);
+      // reset input so the same file can be re-selected after an error
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   const onSubmit = useCallback(
@@ -128,6 +144,7 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
         await createAgent(payload);
         toast.success(f.toast.created);
         reset();
+        if (photoPreview) URL.revokeObjectURL(photoPreview);
         setPhotoPreview("");
         setToggle(false);
         resetCurrentPage?.();
@@ -135,7 +152,7 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
         toast.error(f.toast.createFailed);
       }
     },
-    [createAgent, reset, setToggle, resetCurrentPage, f],
+    [createAgent, reset, photoPreview, setToggle, resetCurrentPage, f],
   );
 
   function handleDialogChange(nextOpen: boolean) {
@@ -148,6 +165,7 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
 
   function handleDiscard() {
     reset();
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
     setPhotoPreview("");
     setToggle(false);
     setOpenDiscard(false);
@@ -258,7 +276,16 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
                             <Label>
                               {f.labels.specialization} <span className="text-destructive">*</span>
                             </Label>
-                            <Input {...field} placeholder={f.placeholders.specialization} />
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder={f.placeholders.specialization} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {AGENT_SPECIALIZATIONS.map(({ label, value }) => (
+                                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -396,12 +423,17 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
                           <div className="flex items-start gap-3">
                             <div
                               className="shrink-0 w-16 h-16 rounded-lg border border-dashed border-muted-foreground/30 bg-muted flex items-center justify-center overflow-hidden cursor-pointer"
-                              onClick={() => fileInputRef.current?.click()}
+                              onClick={() => !photoUploading && fileInputRef.current?.click()}
                             >
-                              {(photoPreview || field.value) ? (
+                              {photoUploading ? (
+                                <svg className="animate-spin w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+                                </svg>
+                              ) : photoPreview ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
-                                  src={photoPreview || field.value}
+                                  src={photoPreview}
                                   alt="Photo preview"
                                   className="w-full h-full object-cover"
                                   onError={() => setPhotoPreview("")}
@@ -416,6 +448,7 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
                               <Input
                                 {...field}
                                 placeholder="https://example.com/photo.jpg"
+                                disabled={photoUploading}
                                 onChange={(e) => {
                                   field.onChange(e);
                                   setPhotoPreview("");
@@ -423,10 +456,11 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
                               />
                               <button
                                 type="button"
+                                disabled={photoUploading}
                                 onClick={() => fileInputRef.current?.click()}
-                                className="text-xs text-brand-blue hover:underline text-left"
+                                className="text-xs text-brand-blue hover:underline text-left disabled:opacity-50"
                               >
-                                {f.hints.orChooseFile}
+                                {photoUploading ? "Uploading…" : f.hints.orChooseFile}
                               </button>
                             </div>
                           </div>
@@ -562,7 +596,7 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
                     type="submit"
                     className="bg-gradient-primary"
                     onClick={handleSubmit(onSubmit)}
-                    disabled={!formState.isValid || isPending}
+                    disabled={!formState.isValid || isPending || photoUploading}
                   >
                     {f.createBtn}
                   </Button>
