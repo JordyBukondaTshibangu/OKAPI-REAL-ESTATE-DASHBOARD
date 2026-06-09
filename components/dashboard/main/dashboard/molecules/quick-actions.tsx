@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import AddAgent from "@/components/dashboard/main/agents/dialogs/create-agent/add-agent";
 import AddAgency from "@/components/dashboard/main/agencies/dialogs/create-agency/add-agency";
-import AddProperty from "@/components/dashboard/main/properties/dialogs/create-agent/add-agent";
+import AddProperty from "@/components/dashboard/main/properties/dialogs/create-property/add-property";
 import { useTranslation } from "@/hooks/use-translation";
 
 function QuickActions() {

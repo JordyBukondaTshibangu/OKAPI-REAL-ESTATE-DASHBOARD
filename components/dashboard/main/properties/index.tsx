@@ -13,7 +13,7 @@ import { SEARCH_TYPE } from "@/types";
 import EmptyTable from "../_common/empty-table";
 import SearchInput from "../_common/molecules/search-input";
 import PropertiesTable, { PropertyDialogType } from "../_common/properties-table";
-import AddProperty from "./dialogs/create-agent/add-agent";
+import AddProperty from "./dialogs/create-property/add-property";
 import DeletePropertyDialog from "./dialogs/delete-agent";
 import { useTranslation } from "@/hooks/use-translation";
 

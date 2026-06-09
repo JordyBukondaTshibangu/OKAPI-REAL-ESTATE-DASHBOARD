@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, ImageIcon, Link2, UploadCloud, X } from "lucide-react";
+import { Check, UploadCloud, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -32,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MAX_DESCRIPTION_LENGTH } from "@/constants";
 import { useAgencies } from "@/lib/queries/agencies";
 import { useAgents } from "@/lib/queries/agents";
+import { api } from "@/lib/api";
 import { useCreateProperty } from "@/lib/queries/properties";
 import { Agency } from "@/types";
 import { Agent } from "@/types";
@@ -180,15 +181,6 @@ type GalleryItem = { file: File; previewUrl: string };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error("File read failed"));
-    reader.readAsDataURL(file);
-  });
-}
-
 function splitTrim(val: string): string[] {
   return val.split(",").map((s) => s.trim()).filter(Boolean);
 }
@@ -255,7 +247,6 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
   const [step, setStep] = useState(0);
   const [openDiscard, setOpenDiscard] = useState(false);
   const [agencyIdForAgents, setAgencyIdForAgents] = useState("");
-  const [galleryMode, setGalleryMode] = useState<"urls" | "images">("urls");
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -327,18 +318,9 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
     });
   }
 
-  function handleGalleryModeChange(mode: "urls" | "images") {
-    if (mode === "urls") {
-      galleryItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
-      setGalleryItems([]);
-    }
-    setGalleryMode(mode);
-  }
-
   function clearGalleryImages() {
     galleryItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
     setGalleryItems([]);
-    setGalleryMode("urls");
   }
 
   // ── Navigation ───────────────────────────────────────────────────────────────
@@ -381,10 +363,19 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
       if (step !== STEPS.length - 1) return;
       try {
         let galleryUrls: string[];
-        if (galleryMode === "images") {
-          galleryUrls = await Promise.all(galleryItems.map(({ file }) => readFileAsDataUrl(file)));
+        if (galleryItems.length > 0) {
+          const { data: presigned } = await api.post<{ key: string; url: string }[]>(
+            "/api/uploads/presign",
+            { files: galleryItems.map(({ file }) => ({ filename: file.name, contentType: file.type })) },
+          );
+          await Promise.all(
+            presigned.map(({ url }, i) =>
+              fetch(url, { method: "PUT", body: galleryItems[i].file, headers: { "Content-Type": galleryItems[i].file.type } }),
+            ),
+          );
+          galleryUrls = presigned.map((p) => p.key);
         } else {
-          galleryUrls = values.gallery ? splitTrim(values.gallery) : [];
+          galleryUrls = [];
         }
 
         const payload = {
@@ -413,7 +404,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
         toast.error(fp.toast.createFailed);
       }
     },
-    [step, STEPS.length, galleryMode, galleryItems, createProperty, reset, setToggle, resetCurrentPage, fp],
+    [step, STEPS.length, galleryItems, createProperty, reset, setToggle, resetCurrentPage, fp],
   );
 
   const isLastStep = step === STEPS.length - 1;
@@ -749,109 +740,66 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={control}
-                      name="gallery"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center justify-between">
-                            <Label>{fp.labels.gallery}</Label>
-                            <div className="flex items-center gap-0.5 rounded-md border p-0.5 bg-muted">
+                    <FormItem>
+                      <Label>{fp.labels.gallery}</Label>
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                        onDragLeave={(e) => {
+                          if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                          handleAddFiles(Array.from(e.dataTransfer.files));
+                        }}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={cn(
+                          "border-2 border-dashed rounded-lg py-5 px-4 cursor-pointer text-center transition-colors select-none",
+                          isDragging ? "border-brand-blue bg-brand-blue/5" : "border-border hover:border-brand-navy/50",
+                          galleryItems.length >= MAX_GALLERY_IMAGES && "pointer-events-none opacity-60",
+                        )}
+                      >
+                        <UploadCloud className="w-7 h-7 mx-auto mb-1.5 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          {fp.placeholders.dragOrBrowse}{" "}
+                          <span className="text-brand-navy font-medium underline">{fp.placeholders.browse}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {galleryItems.length}/{MAX_GALLERY_IMAGES} images • JPG, PNG, WebP
+                        </p>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            handleAddFiles(Array.from(e.target.files ?? []));
+                            e.target.value = "";
+                          }}
+                        />
+                      </div>
+                      {galleryItems.length > 0 && (
+                        <div className="grid grid-cols-5 gap-1.5 mt-1">
+                          {galleryItems.map((item, idx) => (
+                            <div key={idx} className="relative group aspect-square">
+                              <img
+                                src={item.previewUrl}
+                                alt={item.file.name}
+                                className="w-full h-full object-cover rounded-md border"
+                              />
                               <button
                                 type="button"
-                                onClick={() => handleGalleryModeChange("urls")}
-                                className={cn(
-                                  "flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors",
-                                  galleryMode === "urls" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
-                                )}
+                                onClick={(e) => { e.stopPropagation(); handleRemoveGalleryItem(idx); }}
+                                className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
-                                <Link2 className="w-3 h-3" />
-                                URLs
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleGalleryModeChange("images")}
-                                className={cn(
-                                  "flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors",
-                                  galleryMode === "images" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
-                                )}
-                              >
-                                <ImageIcon className="w-3 h-3" />
-                                Images
+                                <X className="w-2.5 h-2.5" />
                               </button>
                             </div>
-                          </div>
-
-                          {galleryMode === "urls" ? (
-                            <>
-                              <Input {...field} placeholder={fp.placeholders.galleryUrls} />
-                              <p className="text-xs text-muted-foreground">{fp.placeholders.separateWithCommas}</p>
-                            </>
-                          ) : (
-                            <>
-                              <div
-                                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                                onDragLeave={(e) => {
-                                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false);
-                                }}
-                                onDrop={(e) => {
-                                  e.preventDefault();
-                                  setIsDragging(false);
-                                  handleAddFiles(Array.from(e.dataTransfer.files));
-                                }}
-                                onClick={() => fileInputRef.current?.click()}
-                                className={cn(
-                                  "border-2 border-dashed rounded-lg py-5 px-4 cursor-pointer text-center transition-colors select-none",
-                                  isDragging ? "border-brand-blue bg-brand-blue/5" : "border-border hover:border-brand-navy/50",
-                                  galleryItems.length >= MAX_GALLERY_IMAGES && "pointer-events-none opacity-60",
-                                )}
-                              >
-                                <UploadCloud className="w-7 h-7 mx-auto mb-1.5 text-muted-foreground" />
-                                <p className="text-sm text-muted-foreground">
-                                  {fp.placeholders.dragOrBrowse}{" "}
-                                  <span className="text-brand-navy font-medium underline">{fp.placeholders.browse}</span>
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {galleryItems.length}/{MAX_GALLERY_IMAGES} images • JPG, PNG, WebP
-                                </p>
-                                <input
-                                  ref={fileInputRef}
-                                  type="file"
-                                  accept="image/*"
-                                  multiple
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    handleAddFiles(Array.from(e.target.files ?? []));
-                                    e.target.value = "";
-                                  }}
-                                />
-                              </div>
-                              {galleryItems.length > 0 && (
-                                <div className="grid grid-cols-5 gap-1.5 mt-1">
-                                  {galleryItems.map((item, idx) => (
-                                    <div key={idx} className="relative group aspect-square">
-                                      <img
-                                        src={item.previewUrl}
-                                        alt={item.file.name}
-                                        className="w-full h-full object-cover rounded-md border"
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); handleRemoveGalleryItem(idx); }}
-                                        className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                      >
-                                        <X className="w-2.5 h-2.5" />
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </>
-                          )}
-                          <FormMessage />
-                        </FormItem>
+                          ))}
+                        </div>
                       )}
-                    />
+                    </FormItem>
                     <FormField
                       control={control}
                       name="amenities"
