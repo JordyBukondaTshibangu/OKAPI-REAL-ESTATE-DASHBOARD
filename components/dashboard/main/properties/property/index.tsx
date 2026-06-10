@@ -40,6 +40,7 @@ import { Separator } from "@/components/ui/separator";
 import { useProperty } from "@/lib/queries/properties";
 import DeletePropertyDialog from "../dialogs/delete-agent";
 import EditProperty from "../dialogs/edit-property/edit-property";
+import PerformanceChart from "./performance-chart";
 
 type Props = { propertyId: string };
 
@@ -269,6 +270,14 @@ function PropertyDetail({ propertyId }: Props) {
           </Card>
         ))}
       </div>
+
+      {/* ── Performance ────────────────────────────────────────── */}
+      {property.performance && (
+        <PerformanceChart
+          performance={property.performance}
+          listedDaysAgo={property.listedDaysAgo}
+        />
+      )}
 
       {/* ── Main content ───────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

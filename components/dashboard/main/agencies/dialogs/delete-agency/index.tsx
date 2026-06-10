@@ -16,6 +16,7 @@ import {
 import { Loading } from "@/components/common/loading";
 import { Agency } from "@/types";
 import { useDeleteAgency } from "@/lib/queries/agencies";
+import { useTranslation } from "@/hooks/use-translation";
 
 type DeleteAgencyDialogProps = {
   agency: Agency;
@@ -26,41 +27,44 @@ type DeleteAgencyDialogProps = {
 };
 
 function DeleteAgencyDialog({ open, agency, setOpen, onClose }: DeleteAgencyDialogProps) {
+  const t = useTranslation();
+  const f = t.forms.agency;
+
   const { mutateAsync: deleteAgency, isPending } = useDeleteAgency();
 
   const handleDelete = useCallback(async () => {
     try {
       await deleteAgency(agency.id);
-      toast.success(`Agency "${agency.name}" deleted`);
+      toast.success(f.toast.deleted.replace("{name}", agency.name));
       setOpen(false);
       onClose?.();
     } catch {
-      toast.error("Failed to delete agency. Please try again.");
+      toast.error(f.toast.deleteFailed);
     }
-  }, [agency, deleteAgency, setOpen, onClose]);
+  }, [agency, deleteAgency, setOpen, onClose, f]);
 
   return (
     <>
       {isPending ? (
-        <Loading label="Deleting agency" />
+        <Loading label={f.toast.deleting} />
       ) : (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader className="gap-4">
               <DialogTitle>Delete {agency?.name}?</DialogTitle>
               <DialogDescription className="text-muted-foreground text-sm leading-normal">
-                This action cannot be undone. The agency will be permanently removed.
+                {f.delete.description}
               </DialogDescription>
             </DialogHeader>
 
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline" onClick={onClose}>
-                  Cancel
+                  {t.forms.common.cancel}
                 </Button>
               </DialogClose>
               <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
-                Delete agency
+                {f.delete.button}
               </Button>
             </DialogFooter>
           </DialogContent>

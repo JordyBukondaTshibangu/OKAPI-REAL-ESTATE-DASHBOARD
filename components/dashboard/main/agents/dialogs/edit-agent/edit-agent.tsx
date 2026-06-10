@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -30,37 +30,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { MAX_DESCRIPTION_LENGTH } from "@/constants";
 import { useUpdateAgent } from "@/lib/queries/agents";
 import { useAgencies } from "@/lib/queries/agencies";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Agent } from "@/types";
+import { useTranslation } from "@/hooks/use-translation";
 import { addAgentSchema, AddAgentFormValues } from "../create-agent/schema";
+import { AGENT_SPECIALIZATIONS } from "../create-agent/constants";
 
 const AGENT_TITLES = ["SUPERAGENT", "AGENT EXCLUSIF", "AGENT"] as const;
 const currentYear = new Date().getFullYear();
 
 const PHOTO_GRADIENT_OPTIONS = [
-  { label: "Blue Sky", value: "from-blue-400 to-blue-600" },
-  { label: "Navy Night", value: "from-slate-700 to-slate-900" },
+  { label: "Blue Sky",     value: "from-blue-400 to-blue-600" },
+  { label: "Navy Night",   value: "from-slate-700 to-slate-900" },
   { label: "Gold Sunrise", value: "from-amber-400 to-orange-600" },
-  { label: "Purple Dusk", value: "from-purple-400 to-purple-700" },
-  { label: "Emerald", value: "from-emerald-400 to-emerald-700" },
-  { label: "Rose", value: "from-rose-400 to-rose-700" },
-  { label: "Indigo", value: "from-indigo-400 to-indigo-700" },
-  { label: "Teal", value: "from-teal-400 to-teal-600" },
-  { label: "Crimson", value: "from-red-400 to-red-700" },
-  { label: "Charcoal", value: "from-gray-500 to-gray-800" },
+  { label: "Purple Dusk",  value: "from-purple-400 to-purple-700" },
+  { label: "Emerald",      value: "from-emerald-400 to-emerald-700" },
+  { label: "Rose",         value: "from-rose-400 to-rose-700" },
+  { label: "Indigo",       value: "from-indigo-400 to-indigo-700" },
+  { label: "Teal",         value: "from-teal-400 to-teal-600" },
+  { label: "Crimson",      value: "from-red-400 to-red-700" },
+  { label: "Charcoal",     value: "from-gray-500 to-gray-800" },
 ] as const;
 
 const ACCENT_CLASSES = [
-  { label: "Blue", value: "bg-blue-600" },
-  { label: "Green", value: "bg-green-600" },
+  { label: "Blue",   value: "bg-blue-600" },
+  { label: "Green",  value: "bg-green-600" },
   { label: "Purple", value: "bg-purple-600" },
-  { label: "Red", value: "bg-red-600" },
+  { label: "Red",    value: "bg-red-600" },
   { label: "Orange", value: "bg-orange-600" },
   { label: "Indigo", value: "bg-indigo-600" },
-  { label: "Teal", value: "bg-teal-600" },
-  { label: "Pink", value: "bg-pink-600" },
+  { label: "Teal",   value: "bg-teal-600" },
+  { label: "Pink",   value: "bg-pink-600" },
   { label: "Yellow", value: "bg-yellow-600" },
-  { label: "Gray", value: "bg-gray-700" },
+  { label: "Gray",   value: "bg-gray-700" },
 ] as const;
 
 function resolveAgencyId(agency: unknown): string {
@@ -78,10 +81,16 @@ type EditAgentProps = {
 };
 
 function EditAgent({ agent, open, setOpen }: EditAgentProps) {
+  const t = useTranslation();
+  const f = t.forms.agent;
+
   const { mutateAsync: updateAgent, isPending } = useUpdateAgent();
   const { data: agenciesData, isLoading: agenciesLoading } = useAgencies({ pageSize: 200 });
 
-  const [saved, setSaved] = useState(false);
+  // Photo upload state — seed preview with current photo
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>(agent.photo ?? "");
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   const form = useForm<AddAgentFormValues>({
     resolver: zodResolver(addAgentSchema),
@@ -107,7 +116,30 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
     mode: "onChange",
   });
 
-  const { handleSubmit, control, watch, formState, setValue } = form;
+  const { handleSubmit, control, formState, setValue } = form;
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoPreview(URL.createObjectURL(file));
+    try {
+      setPhotoUploading(true);
+      const { data: presigned } = await api.post<{ key: string; url: string }[]>(
+        "/api/uploads/presign",
+        { files: [{ filename: file.name, contentType: file.type }] },
+      );
+      const { key, url } = presigned[0];
+      await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      setValue("photo", key, { shouldValidate: true });
+    } catch {
+      toast.error("Photo upload failed");
+      setPhotoPreview(agent.photo ?? "");
+      setValue("photo", agent.photo ?? "", { shouldValidate: true });
+    } finally {
+      setPhotoUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   const onSubmit = useCallback(
     async (values: AddAgentFormValues) => {
@@ -118,21 +150,20 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
           languages: values.languages.split(",").map((s) => s.trim()).filter(Boolean),
         };
         await updateAgent(payload);
-        toast.success("Agent updated successfully");
-        setSaved(true);
+        toast.success(f.toast.updated);
         setOpen(false);
       } catch {
-        toast.error("Failed to update agent. Please try again.");
+        toast.error(f.toast.updateFailed);
       }
     },
-    [updateAgent, agent.id, setOpen],
+    [updateAgent, agent.id, setOpen, f],
   );
 
   const agencies = agenciesData?.data ?? [];
 
   return (
     <>
-      {isPending && <Loading label="Saving changes" />}
+      {isPending && <Loading label={f.loading.saving} />}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <Form {...form}>
@@ -140,21 +171,22 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
             <DialogContent className="sm:max-w-xl min-w-[950px] flex flex-col gap-4 max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  Edit Agent
+                  {f.editTitle}
                   <span className="text-sm font-normal text-muted-foreground">— {agent.name}</span>
                 </DialogTitle>
-                <DialogDescription>Update the agent&apos;s information below.</DialogDescription>
+                <DialogDescription>{f.editDesc}</DialogDescription>
               </DialogHeader>
 
               <ScrollArea className="flex-1 overflow-y-auto pr-1">
                 <div className="flex flex-col gap-4 pb-2">
-                  {/* Agency dropdown */}
+
+                  {/* Agency */}
                   <FormField
                     control={control}
                     name="agencyId"
                     render={({ field }) => (
                       <FormItem>
-                        <Label>Agency <span className="text-destructive">*</span></Label>
+                        <Label>{f.labels.agency} <span className="text-destructive">*</span></Label>
                         <Select
                           disabled={agenciesLoading}
                           onValueChange={(value) => {
@@ -168,7 +200,7 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                           value={field.value}
                         >
                           <SelectTrigger className="w-full">
-                            <SelectValue placeholder={agenciesLoading ? "Loading agencies…" : "Select an agency"} />
+                            <SelectValue placeholder={agenciesLoading ? f.placeholders.loadingAgencies : f.placeholders.selectAgency} />
                           </SelectTrigger>
                           <SelectContent>
                             {agencies.map((a) => (
@@ -188,8 +220,8 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Full name <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder="John Smith" />
+                          <Label>{f.labels.fullName} <span className="text-destructive">*</span></Label>
+                          <Input {...field} placeholder={f.placeholders.fullName} />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -199,12 +231,12 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                       name="title"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Title <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.title} <span className="text-destructive">*</span></Label>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                             <SelectContent>
-                              {AGENT_TITLES.map((t) => (
-                                <SelectItem key={t} value={t}>{t}</SelectItem>
+                              {AGENT_TITLES.map((title) => (
+                                <SelectItem key={title} value={title}>{title}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -215,13 +247,23 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
+                    {/* Specialization — dropdown */}
                     <FormField
                       control={control}
                       name="specialization"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Specialization <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder="Residential" />
+                          <Label>{f.labels.specialization} <span className="text-destructive">*</span></Label>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder={f.placeholders.specialization} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {AGENT_SPECIALIZATIONS.map(({ label, value }) => (
+                                <SelectItem key={value} value={value}>{label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -231,8 +273,8 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                       name="nationality"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Nationality <span className="text-destructive">*</span></Label>
-                          <Input {...field} placeholder="French" />
+                          <Label>{f.labels.nationality} <span className="text-destructive">*</span></Label>
+                          <Input {...field} placeholder={f.placeholders.nationality} />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -244,9 +286,9 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                     name="languages"
                     render={({ field }) => (
                       <FormItem>
-                        <Label>Languages <span className="text-destructive">*</span></Label>
-                        <Input {...field} placeholder="English, French, Arabic" />
-                        <p className="text-xs text-muted-foreground">Separate with commas</p>
+                        <Label>{f.labels.languages} <span className="text-destructive">*</span></Label>
+                        <Input {...field} placeholder={f.placeholders.languages} />
+                        <p className="text-xs text-muted-foreground">{f.hints.separateWithCommas}</p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -257,8 +299,8 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                     name="brokerLicense"
                     render={({ field }) => (
                       <FormItem>
-                        <Label>Broker license <span className="text-destructive">*</span></Label>
-                        <Input {...field} placeholder="BRN-123456" />
+                        <Label>{f.labels.brokerLicense} <span className="text-destructive">*</span></Label>
+                        <Input {...field} placeholder={f.placeholders.brokerLicense} />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -271,7 +313,7 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                       name="yearsExperience"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Years exp. <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.yearsExp} <span className="text-destructive">*</span></Label>
                           <Input {...field} type="number" min={0} placeholder="5"
                             onChange={(e) => field.onChange(Number(e.target.value))} />
                           <FormMessage />
@@ -283,7 +325,7 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                       name="experienceSince"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Since (year) <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.since} <span className="text-destructive">*</span></Label>
                           <Input {...field} type="number" min={1900} max={currentYear} placeholder="2019"
                             onChange={(e) => field.onChange(Number(e.target.value))} />
                           <FormMessage />
@@ -295,7 +337,7 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                       name="responseMinutes"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Response (min) <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.responseMin} <span className="text-destructive">*</span></Label>
                           <Input {...field} type="number" min={0} placeholder="30"
                             onChange={(e) => field.onChange(Number(e.target.value))} />
                           <FormMessage />
@@ -310,7 +352,7 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                       name="rating"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Rating (0–5) <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.rating} <span className="text-destructive">*</span></Label>
                           <Input {...field} type="number" min={0} max={5} step={0.1} placeholder="4.8"
                             onChange={(e) => field.onChange(Number(e.target.value))} />
                           <FormMessage />
@@ -322,7 +364,7 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                       name="ratingsCount"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Ratings count <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.ratingsCount} <span className="text-destructive">*</span></Label>
                           <Input {...field} type="number" min={0} placeholder="120"
                             onChange={(e) => field.onChange(Number(e.target.value))} />
                           <FormMessage />
@@ -331,14 +373,67 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                     />
                   </div>
 
-                  {/* Media */}
+                  {/* Photo */}
                   <FormField
                     control={control}
                     name="photo"
                     render={({ field }) => (
                       <FormItem>
-                        <Label>Photo URL <span className="text-destructive">*</span></Label>
-                        <Input {...field} placeholder="https://example.com/photo.jpg" />
+                        <Label>{f.labels.photo} <span className="text-destructive">*</span></Label>
+                        <div className="flex items-start gap-3">
+                          {/* Thumbnail / spinner */}
+                          <div
+                            className="shrink-0 w-16 h-16 rounded-lg border border-dashed border-muted-foreground/30 bg-muted flex items-center justify-center overflow-hidden cursor-pointer"
+                            onClick={() => !photoUploading && fileInputRef.current?.click()}
+                          >
+                            {photoUploading ? (
+                              <svg className="animate-spin w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+                              </svg>
+                            ) : photoPreview ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={photoPreview}
+                                alt="Photo preview"
+                                className="w-full h-full object-cover"
+                                onError={() => setPhotoPreview("")}
+                              />
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground text-center px-1">
+                                {f.hints.clickToUpload}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* URL input + upload button */}
+                          <div className="flex-1 flex flex-col gap-2">
+                            <Input
+                              {...field}
+                              placeholder="https://example.com/photo.jpg"
+                              disabled={photoUploading}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                setPhotoPreview(e.target.value);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              disabled={photoUploading}
+                              onClick={() => fileInputRef.current?.click()}
+                              className="text-xs text-brand-blue hover:underline text-left disabled:opacity-50"
+                            >
+                              {photoUploading ? "Uploading…" : f.hints.orChooseFile}
+                            </button>
+                          </div>
+                        </div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
@@ -349,14 +444,14 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                     name="photoGradient"
                     render={({ field }) => (
                       <FormItem>
-                        <Label>Photo gradient <span className="text-destructive">*</span></Label>
+                        <Label>{f.labels.photoGradient} <span className="text-destructive">*</span></Label>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <SelectTrigger className="w-full">
                             <div className="flex items-center gap-2 min-w-0">
                               {field.value && (
                                 <span className={cn("inline-block shrink-0 w-12 h-4 rounded-sm bg-linear-to-r", field.value)} />
                               )}
-                              <SelectValue placeholder="Select a gradient" />
+                              <SelectValue placeholder={f.placeholders.selectGradient} />
                             </div>
                           </SelectTrigger>
                           <SelectContent>
@@ -381,14 +476,14 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                       name="agencyAccent"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Agency accent <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.agencyAccent} <span className="text-destructive">*</span></Label>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger className="w-full">
                               <div className="flex items-center gap-2 min-w-0">
                                 {field.value && (
                                   <span className={cn("inline-block shrink-0 w-3 h-3 rounded-full", field.value)} />
                                 )}
-                                <SelectValue placeholder="Select accent" />
+                                <SelectValue placeholder={f.placeholders.selectAccent} />
                               </div>
                             </SelectTrigger>
                             <SelectContent>
@@ -400,7 +495,7 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                               ))}
                             </SelectContent>
                           </Select>
-                          <p className="text-xs text-muted-foreground">Auto-filled from agency</p>
+                          <p className="text-xs text-muted-foreground">{f.hints.autoFilledFromAgency}</p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -410,9 +505,9 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                       name="agencyMonogram"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Agency monogram <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.agencyMonogram} <span className="text-destructive">*</span></Label>
                           <Input {...field} placeholder="CB" />
-                          <p className="text-xs text-muted-foreground">Auto-filled from agency</p>
+                          <p className="text-xs text-muted-foreground">{f.hints.autoFilledFromAgency}</p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -428,12 +523,12 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                       const exceeded = len > MAX_DESCRIPTION_LENGTH;
                       return (
                         <FormItem>
-                          <Label>Bio <span className="text-destructive">*</span></Label>
+                          <Label>{f.labels.bio} <span className="text-destructive">*</span></Label>
                           <Textarea
                             {...field}
                             value={field.value ?? ""}
                             className={cn("h-24", { "border-destructive": exceeded })}
-                            placeholder="Short professional bio"
+                            placeholder={f.placeholders.bio}
                           />
                           <div className="flex justify-end">
                             <span className={cn("text-muted-foreground text-xs", { "text-destructive": exceeded })}>
@@ -450,15 +545,15 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                  Cancel
+                  {t.forms.common.cancel}
                 </Button>
                 <Button
                   type="submit"
                   className="bg-gradient-primary"
                   onClick={handleSubmit(onSubmit)}
-                  disabled={!formState.isValid || isPending}
+                  disabled={!formState.isValid || isPending || photoUploading}
                 >
-                  Save Changes
+                  {t.forms.common.saveChanges}
                 </Button>
               </DialogFooter>
             </DialogContent>

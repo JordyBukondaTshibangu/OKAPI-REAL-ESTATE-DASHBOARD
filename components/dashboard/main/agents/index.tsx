@@ -15,12 +15,14 @@ import EmptyTable from "../_common/empty-table";
 import SearchInput from "../_common/molecules/search-input";
 import AddAgent from "./dialogs/create-agent/add-agent";
 import DeleteAgentDialog from "./dialogs/delete-agent";
+import { useTranslation } from "@/hooks/use-translation";
 
 const SEARCH_OPTIONS = ["Name", "All Fields"];
 
 function Agents() {
   const router = useRouter();
   const urlSearchParams = useSearchParams();
+  const t = useTranslation();
 
   const {
     selectedAgent,
@@ -78,21 +80,21 @@ function Agents() {
     <>
       {showGlobalEmptyState ? (
         <EmptyTable
-          buttonText="Create Agent"
-          title="No Agents created yet!"
-          description="Add your first agent to get started."
+          buttonText={t.agents.createAgent}
+          title={t.agents.emptyTitle}
+          description={t.agents.emptyDesc}
           buttonOnClick={() => toggleDialog("addAgent", true)}
         />
       ) : (
         <div className="flex flex-col gap-6">
-          {isLoading && <Loading label="Loading Agents" />}
+          {isLoading && <Loading label={t.agents.loading} />}
 
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
               <span className="w-1 h-6 bg-brand-blue rounded-full" />
               <div>
-                <h1 className="text-lg font-semibold text-foreground">Agents</h1>
-                <p className="text-xs text-muted-foreground">Manage your real estate agents</p>
+                <h1 className="text-lg font-semibold text-foreground">{t.agents.title}</h1>
+                <p className="text-xs text-muted-foreground">{t.agents.subtitle}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -105,7 +107,7 @@ function Agents() {
               />
               <Button onClick={() => toggleDialog("addAgent", true)} className="h-9 px-4">
                 <CirclePlus />
-                Add Agent
+                {t.agents.addAgent}
               </Button>
             </div>
           </div>
@@ -120,7 +122,7 @@ function Agents() {
             onPageChange={handlePageChange}
             onSortChange={handleSortingChange}
             setSelectedAgency={setSelectedAgent}
-            emptyMessage={isSearchActive && hasNoResults ? "No results found" : undefined}
+            emptyMessage={isSearchActive && hasNoResults ? t.agents.noResults : undefined}
             toggleDialog={(key: AgentDialogType, value: boolean) => toggleDialog(key, value)}
           />
         </div>

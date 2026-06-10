@@ -16,6 +16,7 @@ import {
 import { Loading } from "@/components/common/loading";
 import { Property } from "@/types";
 import { useDeleteProperty } from "@/lib/queries/properties";
+import { useTranslation } from "@/hooks/use-translation";
 
 type DeletePropertyDialogProps = {
   property: Property;
@@ -26,41 +27,44 @@ type DeletePropertyDialogProps = {
 };
 
 function DeletePropertyDialog({ open, property, setOpen, onClose }: DeletePropertyDialogProps) {
+  const t = useTranslation();
+  const f = t.forms.property;
+
   const { mutateAsync: deleteProperty, isPending } = useDeleteProperty();
 
   const handleDelete = useCallback(async () => {
     try {
       await deleteProperty(property.id);
-      toast.success(`Property "${property.title}" deleted`);
+      toast.success(f.toast.deleted.replace("{name}", property.title));
       setOpen(false);
       onClose?.();
     } catch {
-      toast.error("Failed to delete property. Please try again.");
+      toast.error(f.toast.deleteFailed);
     }
-  }, [property, deleteProperty, setOpen, onClose]);
+  }, [property, deleteProperty, setOpen, onClose, f]);
 
   return (
     <>
       {isPending ? (
-        <Loading label="Deleting property" />
+        <Loading label={f.toast.deleting} />
       ) : (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader className="gap-4">
               <DialogTitle>Delete {property?.title}?</DialogTitle>
               <DialogDescription className="text-muted-foreground text-sm leading-normal">
-                This action cannot be undone. The property will be permanently removed.
+                {f.delete.description}
               </DialogDescription>
             </DialogHeader>
 
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline" onClick={onClose}>
-                  Cancel
+                  {t.forms.common.cancel}
                 </Button>
               </DialogClose>
               <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
-                Delete property
+                {f.delete.button}
               </Button>
             </DialogFooter>
           </DialogContent>

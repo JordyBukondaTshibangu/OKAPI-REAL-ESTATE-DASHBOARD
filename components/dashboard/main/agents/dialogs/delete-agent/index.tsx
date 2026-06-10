@@ -16,6 +16,7 @@ import {
 import { Loading } from "@/components/common/loading";
 import { Agent } from "@/types";
 import { useDeleteAgent } from "@/lib/queries/agents";
+import { useTranslation } from "@/hooks/use-translation";
 
 type DeleteAgentDialogProps = {
   agent: Agent;
@@ -26,41 +27,44 @@ type DeleteAgentDialogProps = {
 };
 
 function DeleteAgentDialog({ open, agent, setOpen, onClose }: DeleteAgentDialogProps) {
+  const t = useTranslation();
+  const f = t.forms.agent;
+
   const { mutateAsync: deleteAgent, isPending } = useDeleteAgent();
 
   const handleDelete = useCallback(async () => {
     try {
       await deleteAgent(agent.id);
-      toast.success(`Agent "${agent.name}" deleted`);
+      toast.success(f.toast.deleted.replace("{name}", agent.name));
       setOpen(false);
       onClose?.();
     } catch {
-      toast.error("Failed to delete agent. Please try again.");
+      toast.error(f.toast.deleteFailed);
     }
-  }, [agent, deleteAgent, setOpen, onClose]);
+  }, [agent, deleteAgent, setOpen, onClose, f]);
 
   return (
     <>
       {isPending ? (
-        <Loading label="Deleting agent" />
+        <Loading label={f.toast.deleting} />
       ) : (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader className="gap-4">
               <DialogTitle>Delete {agent?.name}?</DialogTitle>
               <DialogDescription className="text-muted-foreground text-sm leading-normal">
-                This action cannot be undone. The agent will be permanently removed.
+                {f.delete.description}
               </DialogDescription>
             </DialogHeader>
 
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline" onClick={onClose}>
-                  Cancel
+                  {t.forms.common.cancel}
                 </Button>
               </DialogClose>
               <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
-                Delete agent
+                {f.delete.button}
               </Button>
             </DialogFooter>
           </DialogContent>

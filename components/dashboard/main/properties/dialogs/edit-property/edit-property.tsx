@@ -1,7 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback } from "react";
+import { UploadCloud, X } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -30,10 +31,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_DESCRIPTION_LENGTH } from "@/constants";
+import { api } from "@/lib/api";
 import { useUpdateProperty } from "@/lib/queries/properties";
 import { cn } from "@/lib/utils";
 import { Property, PropertyDetail } from "@/types";
-import { addPropertySchema, AddPropertyFormValues } from "../create-agent/schema";
+import { addPropertySchema, AddPropertyFormValues } from "../create-property/schema";
+
+const MAX_GALLERY_IMAGES = 30;
+type GalleryItem = { file: File; previewUrl: string };
 
 const LISTING_TYPES = ["rent", "sale", "commercial"] as const;
 const CATEGORIES = [
@@ -72,6 +77,28 @@ type EditPropertyProps = {
 function EditProperty({ property, open, setOpen }: EditPropertyProps) {
   const { mutateAsync: updateProperty, isPending } = useUpdateProperty();
   const detail = property as PropertyDetail;
+
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleAddFiles(files: File[]) {
+    const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+    const remaining = MAX_GALLERY_IMAGES - galleryItems.length;
+    if (remaining <= 0) return;
+    const newItems: GalleryItem[] = imageFiles.slice(0, remaining).map((f) => ({
+      file: f,
+      previewUrl: URL.createObjectURL(f),
+    }));
+    setGalleryItems((prev) => [...prev, ...newItems]);
+  }
+
+  function handleRemoveGalleryItem(idx: number) {
+    setGalleryItems((prev) => {
+      URL.revokeObjectURL(prev[idx].previewUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
+  }
 
   const form = useForm<AddPropertyFormValues>({
     resolver: zodResolver(addPropertySchema),
@@ -124,12 +151,28 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
         return val.split(",").map((s) => s.trim()).filter(Boolean);
       }
       try {
+        let galleryUrls: string[];
+        if (galleryItems.length > 0) {
+          const { data: presigned } = await api.post<{ key: string; url: string }[]>(
+            "/api/uploads/presign",
+            { files: galleryItems.map(({ file }) => ({ filename: file.name, contentType: file.type })) },
+          );
+          await Promise.all(
+            presigned.map(({ url }, i) =>
+              fetch(url, { method: "PUT", body: galleryItems[i].file, headers: { "Content-Type": galleryItems[i].file.type } }),
+            ),
+          );
+          galleryUrls = presigned.map((p) => p.key);
+        } else {
+          galleryUrls = values.gallery ? splitTrim(values.gallery) : [];
+        }
+
         await updateProperty({
           id: property.id,
           ...values,
           period: (values.period as "monthly" | "yearly" | undefined) || undefined,
           transaction: (values.transaction as "rent" | "sale" | undefined) || undefined,
-          gallery: values.gallery ? splitTrim(values.gallery) : [],
+          gallery: galleryUrls,
           amenities: splitTrim(values.amenities),
           description: values.description || undefined,
           reference: values.reference || undefined,
@@ -145,7 +188,7 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
         toast.error("Failed to update property. Please try again.");
       }
     },
-    [updateProperty, property.id, setOpen],
+    [galleryItems, updateProperty, property.id, setOpen],
   );
 
   function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -351,18 +394,66 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={control}
-                    name="gallery"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Label>Gallery URLs</Label>
-                        <Input {...field} placeholder="https://img1.jpg, https://img2.jpg" />
-                        <p className="text-xs text-muted-foreground">Separate with commas</p>
-                        <FormMessage />
-                      </FormItem>
+                  <FormItem>
+                    <Label>Gallery</Label>
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDragging(false);
+                        handleAddFiles(Array.from(e.dataTransfer.files));
+                      }}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={cn(
+                        "border-2 border-dashed rounded-lg py-5 px-4 cursor-pointer text-center transition-colors select-none",
+                        isDragging ? "border-brand-blue bg-brand-blue/5" : "border-border hover:border-brand-navy/50",
+                        galleryItems.length >= MAX_GALLERY_IMAGES && "pointer-events-none opacity-60",
+                      )}
+                    >
+                      <UploadCloud className="w-7 h-7 mx-auto mb-1.5 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Drop images or{" "}
+                        <span className="text-brand-navy font-medium underline">browse</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {galleryItems.length}/{MAX_GALLERY_IMAGES} images • JPG, PNG, WebP
+                      </p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          handleAddFiles(Array.from(e.target.files ?? []));
+                          e.target.value = "";
+                        }}
+                      />
+                    </div>
+                    {galleryItems.length > 0 && (
+                      <div className="grid grid-cols-5 gap-1.5 mt-1">
+                        {galleryItems.map((item, idx) => (
+                          <div key={idx} className="relative group aspect-square">
+                            <img
+                              src={item.previewUrl}
+                              alt={item.file.name}
+                              className="w-full h-full object-cover rounded-md border"
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleRemoveGalleryItem(idx); }}
+                              className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                  />
+                  </FormItem>
                   <FormField
                     control={control}
                     name="amenities"

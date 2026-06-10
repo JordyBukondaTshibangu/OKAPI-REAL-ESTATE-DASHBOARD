@@ -9,34 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import AddAgent from "@/components/dashboard/main/agents/dialogs/create-agent/add-agent";
 import AddAgency from "@/components/dashboard/main/agencies/dialogs/create-agency/add-agency";
-import AddProperty from "@/components/dashboard/main/properties/dialogs/create-agent/add-agent";
-
-const ACTIONS = [
-  {
-    key: "addAgent" as const,
-    label: "Add Agent",
-    icon: Users,
-    variant: "default" as const,
-    description: "Register a new real estate agent",
-  },
-  {
-    key: "addAgency" as const,
-    label: "Add Agency",
-    icon: Building2,
-    variant: "outline" as const,
-    description: "Create a new agency profile",
-  },
-  {
-    key: "addProperty" as const,
-    label: "List Property",
-    icon: Home,
-    variant: "outline" as const,
-    description: "Add a new property listing",
-  },
-];
+import AddProperty from "@/components/dashboard/main/properties/dialogs/create-property/add-property";
+import { useTranslation } from "@/hooks/use-translation";
 
 function QuickActions() {
   const router = useRouter();
+  const t = useTranslation();
   const [dialogs, setDialogs] = useState({
     addAgent: false,
     addAgency: false,
@@ -46,13 +24,37 @@ function QuickActions() {
   const toggleDialog = (key: keyof typeof dialogs, value: boolean) =>
     setDialogs((prev) => ({ ...prev, [key]: value }));
 
+  const ACTIONS = [
+    {
+      key: "addAgent" as const,
+      label: t.dashboard.addAgent,
+      icon: Users,
+      variant: "default" as const,
+      description: t.dashboard.addAgentDesc,
+    },
+    {
+      key: "addAgency" as const,
+      label: t.dashboard.addAgency,
+      icon: Building2,
+      variant: "outline" as const,
+      description: t.dashboard.addAgencyDesc,
+    },
+    {
+      key: "addProperty" as const,
+      label: t.dashboard.listProperty,
+      icon: Home,
+      variant: "outline" as const,
+      description: t.dashboard.listPropertyDesc,
+    },
+  ];
+
   return (
     <>
       <Card className="card-luxury rounded-xl col-span-1">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
             <span className="w-1 h-4 bg-brand-gold rounded-full" />
-            Quick Actions
+            {t.dashboard.quickActions}
           </CardTitle>
         </CardHeader>
 
@@ -84,7 +86,7 @@ function QuickActions() {
             className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground h-9"
           >
             <Search className="w-4 h-4" />
-            Browse all properties
+            {t.dashboard.browseAllProperties}
           </Button>
         </CardContent>
       </Card>

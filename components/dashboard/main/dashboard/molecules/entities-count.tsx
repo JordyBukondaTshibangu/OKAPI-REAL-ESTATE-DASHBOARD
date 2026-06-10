@@ -4,38 +4,40 @@ import { Building2, Home, Users } from "lucide-react";
 import { useAgents } from "@/lib/queries/agents";
 import { useAgencies } from "@/lib/queries/agencies";
 import { useProperties } from "@/lib/queries/properties";
-
-const STAT_CONFIG = [
-  {
-    label: "Agents",
-    key: "agents" as const,
-    icon: Users,
-    iconBg: "bg-brand-blue/10",
-    iconColor: "text-brand-blue",
-    borderColor: "border-t-brand-blue",
-  },
-  {
-    label: "Agencies",
-    key: "agencies" as const,
-    icon: Building2,
-    iconBg: "bg-brand-gold/10",
-    iconColor: "text-brand-gold",
-    borderColor: "border-t-brand-gold",
-  },
-  {
-    label: "Properties",
-    key: "properties" as const,
-    icon: Home,
-    iconBg: "bg-brand-navy/10",
-    iconColor: "text-brand-navy",
-    borderColor: "border-t-brand-navy",
-  },
-];
+import { useTranslation } from "@/hooks/use-translation";
 
 function EntitiesCount() {
+  const t = useTranslation();
   const { data: agentsData } = useAgents({ page: 1, pageSize: 1 });
   const { data: agenciesData } = useAgencies({ page: 1, pageSize: 1 });
   const { data: propertiesData } = useProperties({ page: 1, pageSize: 1 });
+
+  const STAT_CONFIG = [
+    {
+      label: t.nav.agents,
+      key: "agents" as const,
+      icon: Users,
+      iconBg: "bg-brand-blue/10",
+      iconColor: "text-brand-blue",
+      borderColor: "border-t-brand-blue",
+    },
+    {
+      label: t.nav.agencies,
+      key: "agencies" as const,
+      icon: Building2,
+      iconBg: "bg-brand-gold/10",
+      iconColor: "text-brand-gold",
+      borderColor: "border-t-brand-gold",
+    },
+    {
+      label: t.nav.properties,
+      key: "properties" as const,
+      icon: Home,
+      iconBg: "bg-brand-navy/10",
+      iconColor: "text-brand-navy",
+      borderColor: "border-t-brand-navy",
+    },
+  ];
 
   const values = {
     agents: typeof agentsData?.totalCount === "number" ? agentsData.totalCount : "–",
@@ -47,10 +49,10 @@ function EntitiesCount() {
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <h2 className="text-foreground text-xl font-semibold leading-normal">
-          Portfolio Overview
+          {t.dashboard.portfolioOverview}
         </h2>
         <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full font-medium">
-          Live
+          {t.dashboard.live}
         </span>
       </div>
 
@@ -70,7 +72,7 @@ function EntitiesCount() {
                 <span className="text-3xl font-bold text-foreground leading-none">
                   {values[key]}
                 </span>
-                <span className="text-xs text-muted-foreground mb-0.5">total</span>
+                <span className="text-xs text-muted-foreground mb-0.5">{t.dashboard.total}</span>
               </div>
             </div>
           </div>

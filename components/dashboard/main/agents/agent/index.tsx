@@ -150,9 +150,18 @@ function AgentDetail({ agentId }: Props) {
         <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-6 p-8">
           {/* Avatar */}
           <div className="relative shrink-0">
-            <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-brand-gold to-brand-blue flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-              {initials}
-            </div>
+            {agent.photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={agent.photo}
+                alt={agent.name}
+                className="w-20 h-20 rounded-2xl object-cover shadow-lg border-2 border-white/10"
+              />
+            ) : (
+              <div className={`w-20 h-20 rounded-2xl bg-linear-to-br ${agent.photoGradient || "from-brand-gold to-brand-blue"} flex items-center justify-center text-white text-2xl font-bold shadow-lg`}>
+                {initials}
+              </div>
+            )}
             <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-400 border-2 border-brand-navy" />
           </div>
 
