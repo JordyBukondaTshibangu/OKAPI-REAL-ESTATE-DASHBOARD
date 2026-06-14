@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -66,6 +66,7 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
   const f = t.forms.agency;
 
   const { mutateAsync: updateAgency, isPending } = useUpdateAgency();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<AddAgencyFormValues>({
     resolver: zodResolver(addAgencySchema),
@@ -95,6 +96,8 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
       function splitTrim(val: string) {
         return val.split(",").map((s) => s.trim()).filter(Boolean);
       }
+      if (isSubmitting) return;
+      setIsSubmitting(true);
       try {
         await updateAgency({
           id: agency.id,
@@ -109,9 +112,11 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
         setOpen(false);
       } catch {
         toast.error(f.toast.updateFailed);
+      } finally {
+        setIsSubmitting(false);
       }
     },
-    [updateAgency, agency.id, setOpen, f],
+    [updateAgency, agency.id, isSubmitting, setOpen, f],
   );
 
   return (
@@ -322,7 +327,7 @@ function EditAgency({ agency, open, setOpen }: EditAgencyProps) {
                   type="submit"
                   className="bg-gradient-primary"
                   onClick={handleSubmit(onSubmit)}
-                  disabled={!formState.isValid || isPending}
+                  disabled={!formState.isValid || isPending || isSubmitting}
                 >
                   {t.forms.common.saveChanges}
                 </Button>

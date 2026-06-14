@@ -249,6 +249,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
   const [agencyIdForAgents, setAgencyIdForAgents] = useState("");
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const agencies = useInfiniteAgencies();
@@ -361,6 +362,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
   const onSubmit = useCallback(
     async (values: AddPropertyFormValues) => {
       if (step !== STEPS.length - 1) return;
+      if (isSubmitting) return;
+      setIsSubmitting(true);
       try {
         let galleryUrls: string[];
         if (galleryItems.length > 0) {
@@ -402,9 +405,11 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
         resetCurrentPage?.();
       } catch {
         toast.error(fp.toast.createFailed);
+      } finally {
+        setIsSubmitting(false);
       }
     },
-    [step, STEPS.length, galleryItems, createProperty, reset, setToggle, resetCurrentPage, fp],
+    [step, STEPS.length, isSubmitting, galleryItems, createProperty, reset, setToggle, resetCurrentPage, fp],
   );
 
   const isLastStep = step === STEPS.length - 1;
@@ -1040,7 +1045,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                     <Button
                       type="button"
                       className="bg-gradient-primary"
-                      disabled={isPending}
+                      disabled={isPending || isSubmitting}
                       onClick={() => form.handleSubmit(onSubmit)()}
                     >
                       {fp.buttons.create}
