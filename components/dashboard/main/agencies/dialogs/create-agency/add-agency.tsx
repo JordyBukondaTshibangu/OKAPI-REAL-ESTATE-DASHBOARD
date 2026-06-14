@@ -65,6 +65,7 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
 
   const { mutateAsync: createAgency, isPending } = useCreateAgency();
   const [openDiscard, setOpenDiscard] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<AddAgencyFormValues>({
     resolver: zodResolver(addAgencySchema),
@@ -91,6 +92,8 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
 
   const onSubmit = useCallback(
     async (values: AddAgencyFormValues) => {
+      if (isSubmitting) return;
+      setIsSubmitting(true);
       try {
         const payload = {
           ...values,
@@ -107,9 +110,11 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
         resetCurrentPage?.();
       } catch {
         toast.error(f.toast.createFailed);
+      } finally {
+        setIsSubmitting(false);
       }
     },
-    [createAgency, reset, setToggle, resetCurrentPage, f],
+    [createAgency, reset, isSubmitting, setToggle, resetCurrentPage, f],
   );
 
   function handleDialogChange(nextOpen: boolean) {
@@ -350,7 +355,7 @@ function AddAgency({ open, setToggle, resetCurrentPage }: AddAgencyProps) {
                     type="submit"
                     className="bg-gradient-primary"
                     onClick={handleSubmit(onSubmit)}
-                    disabled={!formState.isValid || isPending}
+                    disabled={!formState.isValid || isPending || isSubmitting}
                   >
                     {f.createBtn}
                   </Button>

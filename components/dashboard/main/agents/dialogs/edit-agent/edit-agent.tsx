@@ -91,6 +91,7 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoPreview, setPhotoPreview] = useState<string>(agent.photo ?? "");
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<AddAgentFormValues>({
     resolver: zodResolver(addAgentSchema),
@@ -143,6 +144,8 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
 
   const onSubmit = useCallback(
     async (values: AddAgentFormValues) => {
+      if (isSubmitting) return;
+      setIsSubmitting(true);
       try {
         const payload = {
           ...values,
@@ -154,9 +157,11 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
         setOpen(false);
       } catch {
         toast.error(f.toast.updateFailed);
+      } finally {
+        setIsSubmitting(false);
       }
     },
-    [updateAgent, agent.id, setOpen, f],
+    [updateAgent, agent.id, isSubmitting, setOpen, f],
   );
 
   const agencies = agenciesData?.data ?? [];
@@ -551,7 +556,7 @@ function EditAgent({ agent, open, setOpen }: EditAgentProps) {
                   type="submit"
                   className="bg-gradient-primary"
                   onClick={handleSubmit(onSubmit)}
-                  disabled={!formState.isValid || isPending || photoUploading}
+                  disabled={!formState.isValid || isPending || photoUploading || isSubmitting}
                 >
                   {t.forms.common.saveChanges}
                 </Button>

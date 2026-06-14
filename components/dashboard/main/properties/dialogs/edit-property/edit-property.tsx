@@ -80,6 +80,7 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
 
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleAddFiles(files: File[]) {
@@ -150,6 +151,8 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
       function splitTrim(val: string) {
         return val.split(",").map((s) => s.trim()).filter(Boolean);
       }
+      if (isSubmitting) return;
+      setIsSubmitting(true);
       try {
         let galleryUrls: string[];
         if (galleryItems.length > 0) {
@@ -186,9 +189,11 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
         setOpen(false);
       } catch {
         toast.error("Failed to update property. Please try again.");
+      } finally {
+        setIsSubmitting(false);
       }
     },
-    [galleryItems, updateProperty, property.id, setOpen],
+    [galleryItems, isSubmitting, updateProperty, property.id, setOpen],
   );
 
   function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -610,7 +615,7 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                   type="submit"
                   className="bg-gradient-primary"
                   onClick={handleSubmit(onSubmit)}
-                  disabled={!formState.isValid || isPending}
+                  disabled={!formState.isValid || isPending || isSubmitting}
                 >
                   Save Changes
                 </Button>

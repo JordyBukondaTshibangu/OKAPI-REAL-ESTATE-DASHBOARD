@@ -79,6 +79,7 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
   const { mutateAsync: createAgent, isPending } = useCreateAgent();
   const { data: agenciesData, isLoading: agenciesLoading } = useAgencies({ pageSize: 200 });
   const [openDiscard, setOpenDiscard] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<AddAgentFormValues>({
     resolver: zodResolver(addAgentSchema),
@@ -136,6 +137,8 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
 
   const onSubmit = useCallback(
     async (values: AddAgentFormValues) => {
+      if (isSubmitting) return;
+      setIsSubmitting(true);
       try {
         const payload = {
           ...values,
@@ -150,9 +153,11 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
         resetCurrentPage?.();
       } catch {
         toast.error(f.toast.createFailed);
+      } finally {
+        setIsSubmitting(false);
       }
     },
-    [createAgent, reset, photoPreview, setToggle, resetCurrentPage, f],
+    [createAgent, reset, photoPreview, isSubmitting, setToggle, resetCurrentPage, f],
   );
 
   function handleDialogChange(nextOpen: boolean) {
@@ -596,7 +601,7 @@ function AddAgent({ open, setToggle, resetCurrentPage }: AddAgentProps) {
                     type="submit"
                     className="bg-gradient-primary"
                     onClick={handleSubmit(onSubmit)}
-                    disabled={!formState.isValid || isPending || photoUploading}
+                    disabled={!formState.isValid || isPending || photoUploading || isSubmitting}
                   >
                     {f.createBtn}
                   </Button>
