@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UploadCloud, X } from "lucide-react";
+import { Moon, UploadCloud, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -140,6 +140,12 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
       availableFrom: detail.availableFrom ?? "",
       averagePriceArea: detail.averagePriceArea ?? undefined,
       averageSizeArea: detail.averageSizeArea ?? undefined,
+      isShortTerm: property.isShortTerm ?? false,
+      isLongTerm: property.isLongTerm ?? true,
+      pricePerNight: property.pricePerNight ?? undefined,
+      minStayNights: property.minStayNights ?? undefined,
+      maxStayNights: property.maxStayNights ?? undefined,
+      shortTermNotes: property.shortTermNotes ?? "",
     },
     mode: "onChange",
   });
@@ -184,6 +190,7 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
           agentLicense: values.agentLicense || undefined,
           permitNumber: values.permitNumber || undefined,
           availableFrom: values.availableFrom || undefined,
+          shortTermNotes: values.shortTermNotes || undefined,
         });
         toast.success("Property updated successfully");
         setOpen(false);
@@ -604,6 +611,87 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                       )}
                     />
                   </div>
+
+                  {/* Short-term rental */}
+                  <SectionTitle>
+                    <span className="flex items-center gap-1.5"><Moon className="w-3.5 h-3.5" /> Location courte durée</span>
+                  </SectionTitle>
+                  <div className="flex items-center gap-6">
+                    {([
+                      { name: "isLongTerm" as const,  label: "Long terme"   },
+                      { name: "isShortTerm" as const, label: "Courte durée" },
+                    ]).map(({ name, label }) => (
+                      <FormField
+                        key={name}
+                        control={control}
+                        name={name}
+                        render={({ field }) => (
+                          <FormItem className="flex items-center gap-2 space-y-0">
+                            <Checkbox id={`edit-${name}`} checked={!!field.value} onCheckedChange={field.onChange} />
+                            <Label htmlFor={`edit-${name}`} className="text-sm font-normal cursor-pointer">{label}</Label>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField
+                      control={control}
+                      name="pricePerNight"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>Prix / nuit ($)</Label>
+                          <Input
+                            type="number" min={0} placeholder="150"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={control}
+                      name="minStayNights"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>Séjour min (nuits)</Label>
+                          <Input
+                            type="number" min={1} placeholder="2"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={control}
+                      name="maxStayNights"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>Séjour max (nuits)</Label>
+                          <Input
+                            type="number" min={1} placeholder="30"
+                            value={field.value ?? ""}
+                            onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={control}
+                    name="shortTermNotes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label>Notes courte durée</Label>
+                        <Input {...field} value={field.value ?? ""} placeholder="Ex: Idéal pour expats, minimum 3 nuits..." />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </ScrollArea>
 

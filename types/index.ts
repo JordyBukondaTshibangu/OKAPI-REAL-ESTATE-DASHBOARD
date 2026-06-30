@@ -167,6 +167,12 @@ export type Property = {
   transaction?: CommercialTransaction;
   gallery: string[];
   performance?: PropertyPerformance;
+  isShortTerm?: boolean;
+  isLongTerm?: boolean;
+  pricePerNight?: number | null;
+  minStayNights?: number | null;
+  maxStayNights?: number | null;
+  shortTermNotes?: string | null;
 };
 
 export type PropertyDetail = Property & {

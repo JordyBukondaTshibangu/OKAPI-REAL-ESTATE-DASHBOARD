@@ -53,6 +53,14 @@ export const addPropertySchema = z.object({
   availableFrom: z.string().trim().optional(),
   averagePriceArea: z.number().min(0).optional(),
   averageSizeArea: z.number().min(0).optional(),
+  // Rental duration type
+  isShortTerm: z.boolean().optional(),
+  isLongTerm: z.boolean().optional(),
+  // Short-term optional details
+  pricePerNight: z.number().min(0).optional(),
+  minStayNights: z.number().int().min(1).optional(),
+  maxStayNights: z.number().int().min(1).optional(),
+  shortTermNotes: z.string().trim().optional(),
 });
 
 export type AddPropertyFormValues = z.infer<typeof addPropertySchema>;
