@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, UploadCloud, X } from "lucide-react";
+import { Check, Moon, UploadCloud, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -292,6 +292,12 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
       availableFrom: "",
       averagePriceArea: undefined,
       averageSizeArea: undefined,
+      isShortTerm: false,
+      isLongTerm: true,
+      pricePerNight: undefined,
+      minStayNights: undefined,
+      maxStayNights: undefined,
+      shortTermNotes: "",
     },
     mode: "onChange",
   });
@@ -383,17 +389,18 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
 
         const payload = {
           ...values,
-          period:        values.period        || undefined,
-          transaction:   values.transaction   || undefined,
-          gallery:       galleryUrls,
-          amenities:     splitTrim(values.amenities),
-          description:   values.description   || undefined,
-          reference:     values.reference     || undefined,
-          zone:          values.zone          || undefined,
-          brokerLicense: values.brokerLicense || undefined,
-          agentLicense:  values.agentLicense  || undefined,
-          permitNumber:  values.permitNumber  || undefined,
-          availableFrom: values.availableFrom || undefined,
+          period:          values.period          || undefined,
+          transaction:     values.transaction     || undefined,
+          gallery:         galleryUrls,
+          amenities:       splitTrim(values.amenities),
+          description:     values.description     || undefined,
+          reference:       values.reference       || undefined,
+          zone:            values.zone            || undefined,
+          brokerLicense:   values.brokerLicense   || undefined,
+          agentLicense:    values.agentLicense    || undefined,
+          permitNumber:    values.permitNumber    || undefined,
+          availableFrom:   values.availableFrom   || undefined,
+          shortTermNotes:  values.shortTermNotes  || undefined,
         };
         await createProperty(payload);
         toast.success(fp.toast.created);
@@ -915,6 +922,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
 
                 {/* Step 5 — Legal & Market */}
                 {step === 4 && (
+                  <>
                   <div className="grid grid-cols-2 gap-3">
                     <FormField
                       control={control}
@@ -1026,6 +1034,91 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                       )}
                     />
                   </div>
+
+                  {/* Short-term rental */}
+                  <div className="col-span-2 pt-2 border-t">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Moon className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location courte durée</span>
+                    </div>
+                    <div className="flex items-center gap-6 mb-3">
+                      {([
+                        { name: "isLongTerm" as const,  label: "Long terme"   },
+                        { name: "isShortTerm" as const, label: "Courte durée" },
+                      ]).map(({ name, label }) => (
+                        <FormField
+                          key={name}
+                          control={control}
+                          name={name}
+                          render={({ field }) => (
+                            <FormItem className="flex items-center gap-2 space-y-0">
+                              <Checkbox id={name} checked={!!field.value} onCheckedChange={field.onChange} />
+                              <Label htmlFor={name} className="text-sm font-normal cursor-pointer">{label}</Label>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <FormField
+                        control={control}
+                        name="pricePerNight"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Label>Prix / nuit ($)</Label>
+                            <Input
+                              type="number" min={0} placeholder="150"
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={control}
+                        name="minStayNights"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Label>Séjour min (nuits)</Label>
+                            <Input
+                              type="number" min={1} placeholder="2"
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={control}
+                        name="maxStayNights"
+                        render={({ field }) => (
+                          <FormItem>
+                            <Label>Séjour max (nuits)</Label>
+                            <Input
+                              type="number" min={1} placeholder="30"
+                              value={field.value ?? ""}
+                              onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                            />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={control}
+                      name="shortTermNotes"
+                      render={({ field }) => (
+                        <FormItem className="mt-3">
+                          <Label>Notes courte durée</Label>
+                          <Input {...field} value={field.value ?? ""} placeholder="Ex: Idéal pour expats, minimum 3 nuits..." />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  </>
                 )}
               </div>
 

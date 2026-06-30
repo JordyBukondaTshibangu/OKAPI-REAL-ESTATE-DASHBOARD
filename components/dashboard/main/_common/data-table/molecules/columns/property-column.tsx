@@ -47,8 +47,8 @@ export function getResourcesColumns(
     },
     {
       accessorKey: "listingType",
-      enableSorting: false,
-      header: "Type",
+      enableSorting: true,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
       cell: ({ row }) => (
         <Badge variant="outline" className="capitalize text-xs w-20">
           {safeString(row.original.listingType)}
@@ -57,11 +57,39 @@ export function getResourcesColumns(
     },
     {
       accessorKey: "category",
-      enableSorting: false,
-      header: "Category",
+      enableSorting: true,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Category" />,
       cell: ({ row }) => (
         <span className="capitalize">{safeString(row.original.category)}</span>
       ),
+    },
+    {
+      id: "rentalType",
+      enableSorting: true,
+      // Sort key: 0 = long only, 1 = both, 2 = short only
+      accessorFn: (row) => {
+        if (row.isShortTerm && !(row.isLongTerm ?? true)) return 2;
+        if (row.isShortTerm) return 1;
+        return 0;
+      },
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Durée" />,
+      cell: ({ row }) => {
+        const { isShortTerm, isLongTerm } = row.original;
+        return (
+          <div className="flex flex-wrap gap-1">
+            {(isLongTerm ?? true) && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 font-medium">
+                Long terme
+              </Badge>
+            )}
+            {isShortTerm && (
+              <Badge className="text-[10px] px-1.5 py-0 h-5 font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border-0">
+                Court terme
+              </Badge>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "price",
