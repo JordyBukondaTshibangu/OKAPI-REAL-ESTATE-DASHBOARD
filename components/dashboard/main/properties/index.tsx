@@ -55,19 +55,26 @@ function Properties() {
   const handleSortingChange = useCallback(
     (key: string, dir: "asc" | "desc") => {
       setParams({ ...params, sortBy: key || undefined, sortOrder: key ? dir : undefined });
-      const next = new URLSearchParams(urlSearchParams.toString());
-      next.set("queryPage", "1");
-      router.push(`?${next.toString()}`, { scroll: false });
+      // Sorting doesn't change the URL by itself - only reset pagination (and
+      // trigger a navigation) if we're not already on page 1, otherwise this
+      // fires a full RSC round-trip on every sort click for nothing.
+      if (currentPage !== 1) {
+        const next = new URLSearchParams(urlSearchParams.toString());
+        next.set("queryPage", "1");
+        router.push(`?${next.toString()}`, { scroll: false });
+      }
     },
-    [params, setParams, router, urlSearchParams],
+    [params, setParams, router, urlSearchParams, currentPage],
   );
 
   const handleReset = useCallback(() => {
     setParams({});
-    const next = new URLSearchParams();
-    next.set("queryPage", "1");
-    router.push(`?${next.toString()}`, { scroll: false });
-  }, [setParams, router]);
+    if (currentPage !== 1) {
+      const next = new URLSearchParams();
+      next.set("queryPage", "1");
+      router.push(`?${next.toString()}`, { scroll: false });
+    }
+  }, [setParams, router, currentPage]);
 
   const hasNoResults = properties.length === 0;
   const isSearchActive = Boolean(params?.search || params?.searchName);

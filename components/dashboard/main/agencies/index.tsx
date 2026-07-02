@@ -55,19 +55,26 @@ function Agencies() {
   const handleSortingChange = useCallback(
     (key: string, dir: "asc" | "desc") => {
       setParams({ ...params, sortBy: key || undefined, sortOrder: key ? dir : undefined });
-      const next = new URLSearchParams(urlSearchParams.toString());
-      next.set("queryPage", "1");
-      router.push(`?${next.toString()}`, { scroll: false });
+      // Only navigate if pagination actually needs to reset - avoids a
+      // needless full RSC round-trip (which looks like a reload) on every
+      // sort click when already on page 1.
+      if (currentPage !== 1) {
+        const next = new URLSearchParams(urlSearchParams.toString());
+        next.set("queryPage", "1");
+        router.push(`?${next.toString()}`, { scroll: false });
+      }
     },
-    [params, setParams, router, urlSearchParams],
+    [params, setParams, router, urlSearchParams, currentPage],
   );
 
   const handleReset = useCallback(() => {
     setParams({});
-    const next = new URLSearchParams();
-    next.set("queryPage", "1");
-    router.push(`?${next.toString()}`, { scroll: false });
-  }, [setParams, router]);
+    if (currentPage !== 1) {
+      const next = new URLSearchParams();
+      next.set("queryPage", "1");
+      router.push(`?${next.toString()}`, { scroll: false });
+    }
+  }, [setParams, router, currentPage]);
 
   const hasNoResults = agencies.length === 0;
   const isSearchActive = Boolean(params?.search || params?.searchName);
