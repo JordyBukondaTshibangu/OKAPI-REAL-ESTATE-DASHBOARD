@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Moon, UploadCloud, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -50,6 +50,7 @@ function useInfiniteAgencies() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [cachedSearch, setCachedSearch] = useState("");
+  const [prevData, setPrevData] = useState<Agency[] | undefined>(undefined);
   const [prevData, setPrevData] = useState<Agency[] | undefined>(undefined);
 
   if (cachedSearch !== search) {
@@ -1330,7 +1331,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                 {/* Step 5 — Legal & Market */}
                 {step === 4 && (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FormField
                         control={control}
                         name="reference"
@@ -1504,7 +1505,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                           />
                         ))}
                       </div>
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <FormField
                           control={control}
                           name="pricePerNight"
