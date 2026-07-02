@@ -57,20 +57,26 @@ function Agents() {
   const handleSortingChange = useCallback(
     (key: string, dir: "asc" | "desc") => {
       setParams({ ...params, sortBy: key || undefined, sortOrder: key ? dir : undefined });
-      // Reset to page 1 on sort change
-      const next = new URLSearchParams(urlSearchParams.toString());
-      next.set("queryPage", "1");
-      router.push(`?${next.toString()}`, { scroll: false });
+      // Reset to page 1 on sort change, but only navigate if we're not
+      // already there - otherwise every sort click fires a needless full
+      // RSC round-trip that looks/feels like a page reload.
+      if (currentPage !== 1) {
+        const next = new URLSearchParams(urlSearchParams.toString());
+        next.set("queryPage", "1");
+        router.push(`?${next.toString()}`, { scroll: false });
+      }
     },
-    [params, setParams, router, urlSearchParams],
+    [params, setParams, router, urlSearchParams, currentPage],
   );
 
   const handleReset = useCallback(() => {
     setParams({});
-    const next = new URLSearchParams();
-    next.set("queryPage", "1");
-    router.push(`?${next.toString()}`, { scroll: false });
-  }, [setParams, router]);
+    if (currentPage !== 1) {
+      const next = new URLSearchParams();
+      next.set("queryPage", "1");
+      router.push(`?${next.toString()}`, { scroll: false });
+    }
+  }, [setParams, router, currentPage]);
 
   const hasNoResults = agents.length === 0;
   const isSearchActive = Boolean(params?.search || params?.searchName);
