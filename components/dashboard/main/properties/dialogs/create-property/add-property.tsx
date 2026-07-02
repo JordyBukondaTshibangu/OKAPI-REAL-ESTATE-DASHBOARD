@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Moon, UploadCloud, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -50,11 +50,13 @@ function useInfiniteAgencies() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [search, setSearch] = useState("");
   const [cachedSearch, setCachedSearch] = useState("");
+  const [prevData, setPrevData] = useState<Agency[] | undefined>(undefined);
 
   if (cachedSearch !== search) {
     setCachedSearch(search);
     setPage(1);
     setItems([]);
+    setPrevData(undefined);
   }
 
   const { data, isLoading } = useAgencies({
@@ -63,11 +65,13 @@ function useInfiniteAgencies() {
     search: search || undefined,
   });
 
-  useEffect(() => {
-    if (!data?.data) return;
-    setItems((prev) => (page === 1 ? data.data : [...prev, ...data.data]));
-    setIsLoadingMore(false);
-  }, [data, page]);
+  if (data?.data !== prevData) {
+    setPrevData(data?.data);
+    if (data?.data) {
+      setItems((prev) => (page === 1 ? data.data : [...prev, ...data.data]));
+      setIsLoadingMore(false);
+    }
+  }
 
   const totalCount = data?.totalCount ?? 0;
   const hasMore = items.length < totalCount;
@@ -91,11 +95,13 @@ function useInfiniteAgents(agencyId: string) {
   const [items, setItems] = useState<Agent[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [cachedAgencyId, setCachedAgencyId] = useState(agencyId);
+  const [prevData, setPrevData] = useState<Agent[] | undefined>(undefined);
 
   if (cachedAgencyId !== agencyId) {
     setCachedAgencyId(agencyId);
     setPage(1);
     setItems([]);
+    setPrevData(undefined);
   }
 
   const { data, isLoading } = useAgents({
@@ -104,11 +110,13 @@ function useInfiniteAgents(agencyId: string) {
     agencyId: agencyId || undefined,
   });
 
-  useEffect(() => {
-    if (!data?.data) return;
-    setItems((prev) => (page === 1 ? data.data : [...prev, ...data.data]));
-    setIsLoadingMore(false);
-  }, [data, page]);
+  if (data?.data !== prevData) {
+    setPrevData(data?.data);
+    if (data?.data) {
+      setItems((prev) => (page === 1 ? data.data : [...prev, ...data.data]));
+      setIsLoadingMore(false);
+    }
+  }
 
   const totalCount = data?.totalCount ?? 0;
   const hasMore = items.length < totalCount;
@@ -428,9 +436,9 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
       {isPending && <Loading label={fp.loading.creating} />}
 
       <Dialog open={open} onOpenChange={handleDialogChange}>
-        <DialogContent className="sm:max-w-[580px] p-0 gap-0 overflow-hidden">
+        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[580px] p-0 gap-0 max-h-[90dvh] flex flex-col overflow-hidden">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0 flex-1 overflow-hidden">
               {/* Header */}
               <div className="px-6 pt-6 pb-4 flex flex-col gap-1 border-b">
                 <DialogHeader>
@@ -450,7 +458,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
               </div>
 
               {/* Step content */}
-              <div className="px-6 pb-4 min-h-[280px] flex flex-col gap-4">
+              <div className="px-6 pb-4 flex-1 overflow-y-auto flex flex-col gap-4 min-h-0">
 
                 {/* Step 1 — Assignment */}
                 {step === 0 && (
@@ -531,7 +539,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         </FormItem>
                       )}
                     />
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <FormField
                         control={control}
                         name="listingType"
@@ -587,7 +595,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         )}
                       />
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <FormField
                         control={control}
                         name="price"
@@ -640,7 +648,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                 {/* Step 3 — Location */}
                 {step === 2 && (
                   <>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <FormField
                         control={control}
                         name="city"
@@ -675,7 +683,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         )}
                       />
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <FormField
                         control={control}
                         name="bedrooms"
@@ -792,7 +800,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         />
                       </div>
                       {galleryItems.length > 0 && (
-                        <div className="grid grid-cols-5 gap-1.5 mt-1">
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 mt-1">
                           {galleryItems.map((item, idx) => (
                             <div key={idx} className="relative group aspect-square">
                               <img
@@ -850,7 +858,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         );
                       }}
                     />
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FormField
                         control={control}
                         name="transaction"
@@ -873,7 +881,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                           </FormItem>
                         )}
                       />
-                      <div className="flex items-end gap-4 pb-1">
+                      <div className="flex flex-wrap items-end gap-3 pb-1">
                         {([
                           { name: "verified" as const, label: fp.labels.verified },
                           { name: "premium"  as const, label: fp.labels.premium  },
@@ -923,7 +931,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                 {/* Step 5 — Legal & Market */}
                 {step === 4 && (
                   <>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <FormField
                       control={control}
                       name="reference"
@@ -1059,7 +1067,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         />
                       ))}
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <FormField
                         control={control}
                         name="pricePerNight"
