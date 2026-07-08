@@ -20,6 +20,15 @@ function safeNumber(val: unknown): string {
   return "–";
 }
 
+function formatDate(iso?: string): string {
+  if (!iso) return "–";
+  return new Date(iso).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function getAgenciesColumns(
   currentPage: number,
   type?: string,
@@ -31,46 +40,90 @@ export function getAgenciesColumns(
   const genericQuery = searchParams?.search ?? "";
 
   return [
+    // NAME
     {
       accessorKey: "name",
       enableSorting: true,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Nom" />,
       cell: ({ row }) => (
         <span className="font-medium">
           <HighlightText text={safeString(row.original.name)} query={nameQuery || genericQuery} />
         </span>
       ),
     },
+
+    // STATUS
+    {
+      accessorKey: "verificationTier",
+      enableSorting: false,
+      header: "Statut",
+      cell: ({ row }) => {
+        const tier = row.original.verificationTier;
+        if (tier === "VERIFIE") {
+          return (
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
+              🟢 Vérifiée
+            </span>
+          );
+        }
+        if (tier === "NON_VERIFIE") {
+          return (
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600">
+              🟡 En attente
+            </span>
+          );
+        }
+        return <span className="text-[11px] text-muted-foreground">–</span>;
+      },
+    },
+
+    // EMAIL
     {
       accessorKey: "email",
       enableSorting: false,
       header: "Email",
-      cell: ({ row }) => <span>{safeString(row.original.email)}</span>,
+      cell: ({ row }) => (
+        <span className="text-sm truncate max-w-[180px] block">{safeString(row.original.email)}</span>
+      ),
     },
+
+    // PHONE
     {
       accessorKey: "phone",
       enableSorting: false,
-      header: "Phone",
-      cell: ({ row }) => <span>{safeString(row.original.phone)}</span>,
+      header: "Téléphone",
+      cell: ({ row }) => <span className="text-sm">{safeString(row.original.phone)}</span>,
     },
+
+    // AGENTS
     {
       accessorKey: "agentCount",
       enableSorting: true,
       header: ({ column }) => <DataTableColumnHeader column={column} title="Agents" />,
-      cell: ({ row }) => <span>{safeNumber(row.original.agentCount)}</span>,
+      cell: ({ row }) => <span className="tabular-nums">{safeNumber(row.original.agentCount)}</span>,
     },
+
+    // LISTINGS
     {
       accessorKey: "listingCount",
       enableSorting: true,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Listings" />,
-      cell: ({ row }) => <span>{safeNumber(row.original.listingCount)}</span>,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Annonces" />,
+      cell: ({ row }) => <span className="tabular-nums">{safeNumber(row.original.listingCount)}</span>,
     },
+
+    // DATE D'INSCRIPTION (replaces Founded)
     {
-      accessorKey: "founded",
+      accessorKey: "createdAt",
       enableSorting: true,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Founded" />,
-      cell: ({ row }) => <span>{safeNumber(row.original.founded)}</span>,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Inscription" />,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {formatDate(row.original.createdAt)}
+        </span>
+      ),
     },
+
+    // ACTIONS
     {
       id: "actions",
       enableSorting: false,

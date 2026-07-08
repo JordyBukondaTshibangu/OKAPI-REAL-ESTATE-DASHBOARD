@@ -26,6 +26,10 @@ export type QueryParams = {
 
   agentId?: string;
   agencyId?: string;
+
+  // Agents-specific filters
+  pending?: boolean;           // verificationTier=NON_VERIFIE&emailVerified=true
+  verificationTier?: string;
 };
 
 export type PaginatedData<T> = {
@@ -54,22 +58,38 @@ export type ErrorResponse = {
 export type Agency = {
   id: string;
   name: string;
-  monogram: string;
-  accentClass: string;
-  tagline: string;
-  description: string;
-  address: string;
+  // Contact
   phone: string;
   email: string;
   website?: string;
-  founded: number;
-  agentCount: number;
-  listingCount: number;
-  closedDeals: number;
-  specializations: string[];
-  areasServed: string[];
-  languages: string[];
-  certifications: string[];
+  address?: string;
+  whatsapp?: string;
+  // New fields
+  communes?: string[];
+  propertyTypes?: string[];
+  rentalFocus?: RentalFocus;
+  rccmNumber?: string;
+  verificationDocUrl?: string;
+  logoUrl?: string;
+  gracePeriodEndsAt?: string;
+  freeListingCap?: number;
+  description?: string;
+  // Legacy (kept in DB, nullable)
+  monogram?: string;
+  accentClass?: string;
+  tagline?: string;
+  founded?: number;
+  specializations?: string[];
+  areasServed?: string[];
+  languages?: string[];
+  certifications?: string[];
+  // Metadata
+  agentCount?: number;
+  listingCount?: number;
+  closedDeals?: number;
+  verificationTier?: "NON_VERIFIE" | "VERIFIE";
+  createdAt?: string;
+  agents?: Agent[];
 };
 
 export type AgentTitle = "SUPERAGENT" | "AGENT EXCLUSIF" | "AGENT";
@@ -93,31 +113,62 @@ export type TrackRecordRow = {
   bedrooms: string;
 };
 
+export type AgentPlan = "FREE" | "PRO" | "AGENCY";
+export type AgentVerificationTier = "NON_VERIFIE" | "VERIFIE";
+export type AgentType = "COMMISSIONNAIRE" | "AGENT" | "AGENCY_OWNER" | "OTHER";
+export type RentalFocus = "LONG_TERM" | "SHORT_TERM" | "BOTH";
+
 export type Agent = {
   id: string;
   name: string;
-  title: AgentTitle;
-  specialization: string;
-  nationality: string;
-  languages: string[];
-  yearsExperience: number;
-  experienceSince: number;
-  rating: number;
-  ratingsCount: number;
-  responseMinutes: number;
-  agency: string;
-  agencyMonogram: string;
-  agencyAccent: string; // tailwind bg class for the agency mini-card
-  brokerLicense: string;
-  forSaleCount: number;
-  forRentCount: number;
-  closedDeals: number;
-  totalDealsValueUsd: number;
-  bio: string;
-  photo: string;
-  photoGradient: string;
-  areasOfExpertise: AreaOfExpertise[];
-  trackRecord: TrackRecordRow[];
+  email?: string;
+  phoneNumber?: string;
+  whatsappNumber?: string;
+  // New profile fields
+  agentType?: AgentType;
+  communes?: string[];
+  propertyTypes?: string[];
+  rentalFocus?: RentalFocus;
+  yearsExperienceLabel?: string;
+  idDocumentUrl?: string;
+  referredById?: string;
+  freeListingCap?: number;
+  // Legacy fields (kept in DB, no longer shown in admin form)
+  title?: string;
+  specialization?: string;
+  nationality?: string;
+  languages?: string[];
+  yearsExperience?: number;
+  experienceSince?: number;
+  rating?: number;
+  ratingsCount?: number;
+  responseMinutes?: number;
+  brokerLicense?: string;
+  photoGradient?: string;
+  agencyMonogram?: string;
+  agencyAccent?: string;
+  // Relations
+  agency?: unknown;
+  forSaleCount?: number;
+  forRentCount?: number;
+  closedDeals?: number;
+  totalDealsValueUsd?: number;
+  bio?: string;
+  photo?: string;
+  areasOfExpertise?: AreaOfExpertise[];
+  trackRecord?: TrackRecordRow[];
+  // Self-signup / verification fields
+  verificationTier?: AgentVerificationTier;
+  emailVerified?: boolean;
+  plan?: AgentPlan;
+  isSuspended?: boolean;
+  suspendedReason?: string;
+  suspendedAt?: string;
+  idDocumentStatus?: string;
+  graceEndsAt?: string;
+  agencyId?: string;
+  createdAt?: string;
+  verifiedAt?: string;
 };
 
 export type ListingType = "rent" | "sale" | "commercial";
@@ -193,6 +244,7 @@ export type AuditLog = {
   id: string;
   action: string;
   resource: string;
+  resourceId?: string;
   details: string;
   createdAt: string;
   admin: { id: string; email: string } | null;

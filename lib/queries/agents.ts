@@ -13,7 +13,22 @@ function buildParams(params: QueryParams) {
   if (params.sortBy) p.sortBy = params.sortBy;
   if (params.sortOrder) p.sortOrder = params.sortOrder;
   if (params.agencyId) p.agencyId = params.agencyId;
+  if (params.pending) { p.verificationTier = "NON_VERIFIE"; p.emailVerified = "true"; }
+  if (params.verificationTier) p.verificationTier = params.verificationTier;
   return p;
+}
+
+/** Returns just the count of agents awaiting admin approval. */
+export function usePendingAgentsCount() {
+  return useQuery<number>({
+    queryKey: [AGENTS_KEY, "pending-count"],
+    queryFn: async () => {
+      const { data: resp } = await api.get("/api/agents", {
+        params: { verificationTier: "NON_VERIFIE", emailVerified: "true", pageSize: "1", page: "1" },
+      });
+      return resp.meta?.total ?? resp.totalCount ?? 0;
+    },
+  });
 }
 
 export function useAgents(params: QueryParams) {
@@ -65,6 +80,46 @@ export function useDeleteAgent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete(`/api/agents/${id}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [AGENTS_KEY] }),
+  });
+}
+
+/** Promotes a self-registered agent from NON_VERIFIE → VERIFIE. */
+export function useApproveAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.patch(`/api/agents/${id}/approve`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [AGENTS_KEY] }),
+  });
+}
+
+/** Rejects (hard-deletes or marks rejected) a pending agent. */
+export function useRejectAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.delete(`/api/agents/${id}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [AGENTS_KEY] }),
+  });
+}
+
+/** Suspends an agent account. */
+export function useSuspendAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      api.patch(`/api/agents/${id}/suspend`, { reason }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [AGENTS_KEY] }),
+  });
+}
+
+/** Unsuspends an agent account. */
+export function useUnsuspendAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.patch(`/api/agents/${id}/unsuspend`).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: [AGENTS_KEY] }),
   });
 }

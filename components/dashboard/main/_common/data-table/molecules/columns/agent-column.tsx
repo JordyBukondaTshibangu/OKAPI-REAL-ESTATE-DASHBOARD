@@ -1,23 +1,21 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
+import {
+  BadgeCheck,
+  Building2,
+  CircleDot,
+  Clock,
+  ShieldOff,
+  TrendingUp,
+} from "lucide-react";
+import { useState } from "react";
 import { DataTableColumnHeader } from "@/components/dashboard/main/_common/data-table/atoms/column-header";
 import { AgentRowActions } from "@/components/dashboard/main/_common/data-table/atoms/actions/agent-row";
 import HighlightText from "@/components/dashboard/main/_common/atoms/highlight-text";
-import { Badge } from "@/components/ui/badge";
 import { Agent } from "@/types";
 
 export type AgentDialogType = "deleteAgent" | "editAgent";
-
-// Backend may return agency as a nested object or as a plain string
-function resolveAgencyName(agency: unknown): string {
-  if (!agency) return "–";
-  if (typeof agency === "string") return agency;
-  if (typeof agency === "object" && agency !== null && "name" in agency) {
-    return String((agency as Record<string, unknown>).name ?? "–");
-  }
-  return "–";
-}
 
 function safeString(val: unknown): string {
   if (val == null) return "–";
@@ -25,10 +23,101 @@ function safeString(val: unknown): string {
   return String(val);
 }
 
-function safeNumber(val: unknown): string {
-  if (val == null) return "–";
-  if (typeof val === "number") return String(val);
-  return "–";
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+// Deterministic gradient from name string
+function getGradient(name: string): string {
+  const gradients = [
+    "from-blue-500 to-indigo-600",
+    "from-emerald-500 to-teal-600",
+    "from-amber-500 to-orange-600",
+    "from-purple-500 to-violet-600",
+    "from-rose-500 to-pink-600",
+    "from-cyan-500 to-sky-600",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return gradients[Math.abs(hash) % gradients.length];
+}
+
+const AGENT_TYPE_LABELS: Record<string, string> = {
+  COMMISSIONNAIRE: "Commissionnaire",
+  AGENT:           "Agent",
+  AGENCY_OWNER:    "Propriétaire",
+  OTHER:           "Autre",
+};
+
+function AgentAvatar({ photo, name, gradient }: { photo?: string; name: string; gradient: string }) {
+  const [errored, setErrored] = useState(false);
+  if (photo && !errored) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={photo}
+        alt={name}
+        onError={() => setErrored(true)}
+        className="w-9 h-9 rounded-xl object-cover border border-border/50"
+      />
+    );
+  }
+  return (
+    <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
+      {getInitials(name)}
+    </div>
+  );
+}
+
+const PLAN_CONFIG: Record<string, { label: string; className: string }> = {
+  PRO:    { label: "Pro",     className: "bg-blue-50 text-blue-700 border border-blue-200" },
+  AGENCY: { label: "Agence", className: "bg-purple-50 text-purple-700 border border-purple-200" },
+  FREE:   { label: "Gratuit", className: "bg-muted text-muted-foreground border border-border" },
+};
+
+function GracePeriodCell({ graceEndsAt }: { graceEndsAt?: string }) {
+  if (!graceEndsAt) return <span className="text-muted-foreground text-xs">–</span>;
+
+  const diffDays = Math.ceil((new Date(graceEndsAt).getTime() - Date.now()) / 86_400_000);
+
+  if (diffDays <= 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-[11px] font-semibold">
+        <CircleDot className="size-3 shrink-0" />
+        Expirée
+      </span>
+    );
+  }
+  if (diffDays <= 30) {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold w-fit">
+          <Clock className="size-3 shrink-0" />
+          {diffDays}j restants
+        </span>
+        <span className="text-[10px] text-muted-foreground px-1">
+          {new Date(graceEndsAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
+        </span>
+      </div>
+    );
+  }
+  const months = Math.ceil(diffDays / 30);
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold w-fit">
+        <BadgeCheck className="size-3 shrink-0" />
+        {months} mois restants
+      </span>
+      <span className="text-[10px] text-muted-foreground px-1">
+        {new Date(graceEndsAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
+      </span>
+    </div>
+  );
 }
 
 export function getAgentsColumns(
@@ -40,54 +129,174 @@ export function getAgentsColumns(
   const genericQuery = searchParams?.search ?? "";
 
   return [
+    // ── AGENT (avatar + name + email) ────────────────────────────────────────
     {
       accessorKey: "name",
       enableSorting: true,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
-      cell: ({ row }) => (
-        <span className="font-medium">
-          <HighlightText text={safeString(row.original.name)} query={nameQuery || genericQuery} />
-        </span>
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Agent" />,
+      cell: ({ row }) => {
+        const agent = row.original;
+        const isPending = agent.verificationTier === "NON_VERIFIE" && agent.emailVerified === true;
+        const gradient = getGradient(agent.name ?? "");
+
+        return (
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Avatar */}
+            <div className="shrink-0">
+              <AgentAvatar photo={agent.photo} name={agent.name ?? "?"} gradient={gradient} />
+            </div>
+
+            {/* Name + email + badges */}
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-semibold text-sm text-foreground leading-none">
+                  <HighlightText
+                    text={safeString(agent.name)}
+                    query={nameQuery || genericQuery}
+                  />
+                </span>
+                {isPending && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-semibold border border-amber-200 shrink-0">
+                    En attente
+                  </span>
+                )}
+                {agent.isSuspended && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-red-100 text-red-700 text-[10px] font-semibold border border-red-200 shrink-0">
+                    Suspendu
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] text-muted-foreground truncate leading-none mt-0.5">
+                {agent.email ?? "–"}
+              </span>
+              {agent.phoneNumber && (
+                <span className="text-[11px] text-muted-foreground/70 truncate leading-none">
+                  {agent.phoneNumber}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      },
     },
+
+    // ── STATUT (tier + plan) ──────────────────────────────────────────────────
     {
-      accessorKey: "title",
+      accessorKey: "verificationTier",
       enableSorting: false,
-      header: "Title",
-      cell: ({ row }) => (
-        <Badge variant="outline" className="capitalize text-xs w-36">
-          {safeString(row.original.title)}
-        </Badge>
-      ),
+      header: "Statut",
+      cell: ({ row }) => {
+        const { verificationTier: tier, plan } = row.original;
+        const planCfg = PLAN_CONFIG[plan ?? "FREE"] ?? PLAN_CONFIG.FREE;
+
+        return (
+          <div className="flex flex-col gap-1.5 w-fit">
+            {tier === "VERIFIE" ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold">
+                <BadgeCheck className="size-3.5 shrink-0" />
+                Vérifié
+              </span>
+            ) : tier === "NON_VERIFIE" ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold">
+                <Clock className="size-3.5 shrink-0" />
+                En attente
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted border border-border text-muted-foreground text-[11px] font-medium">
+                <ShieldOff className="size-3.5 shrink-0" />
+                Non vérifié
+              </span>
+            )}
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold w-fit ${planCfg.className}`}>
+              {planCfg.label}
+            </span>
+          </div>
+        );
+      },
     },
+
+    // ── TYPE + AGENCE ─────────────────────────────────────────────────────────
     {
-      accessorKey: "agency",
+      accessorKey: "agentType",
       enableSorting: false,
-      header: "Agency",
-      cell: ({ row }) => <span>{resolveAgencyName(row.original.agency)}</span>,
+      header: "Type & Agence",
+      cell: ({ row }) => {
+        const agent = row.original as any;
+        const agentType = agent.agentType ?? null;
+        const agencyName =
+          typeof agent.agency === "object" && agent.agency !== null
+            ? agent.agency.name
+            : null;
+
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium text-foreground">
+              {agentType ? AGENT_TYPE_LABELS[agentType] ?? agentType : "–"}
+            </span>
+            {agencyName ? (
+              <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Building2 className="size-3 shrink-0" />
+                {agencyName}
+              </span>
+            ) : (
+              <span className="text-[11px] text-muted-foreground/50">Indépendant</span>
+            )}
+          </div>
+        );
+      },
     },
+
+    // ── COMMUNES ──────────────────────────────────────────────────────────────
     {
-      accessorKey: "specialization",
+      accessorKey: "communes",
       enableSorting: false,
-      header: "Specialization",
-      cell: ({ row }) => <span>{safeString(row.original.specialization)}</span>,
+      header: "Communes",
+      cell: ({ row }) => {
+        const agent = row.original as any;
+        const communes: string[] = agent.communes ?? [];
+        if (communes.length === 0) return <span className="text-muted-foreground text-xs">–</span>;
+        const [first, ...rest] = communes;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm text-foreground">{first}</span>
+            {rest.length > 0 && (
+              <span className="text-[11px] text-muted-foreground">+{rest.length} autres</span>
+            )}
+          </div>
+        );
+      },
     },
+
+    // ── PÉRIODE GRATUITE ──────────────────────────────────────────────────────
     {
-      accessorKey: "rating",
+      accessorKey: "graceEndsAt",
       enableSorting: true,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Rating" />,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Période gratuite" />
+      ),
       cell: ({ row }) => (
-        <span>
-          {safeNumber(row.original.rating)} ({safeNumber(row.original.ratingsCount)})
-        </span>
+        <GracePeriodCell graceEndsAt={(row.original as any).graceEndsAt} />
       ),
     },
+
+    // ── DEALS ─────────────────────────────────────────────────────────────────
     {
       accessorKey: "closedDeals",
       enableSorting: true,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Deals" />,
-      cell: ({ row }) => <span>{safeNumber(row.original.closedDeals)}</span>,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Deals" />
+      ),
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1.5">
+          <TrendingUp className="size-3.5 text-muted-foreground shrink-0" />
+          <span className="text-sm font-semibold tabular-nums text-foreground">
+            {row.original.closedDeals ?? 0}
+          </span>
+        </div>
+      ),
     },
+
+    // ── ACTIONS ───────────────────────────────────────────────────────────────
     {
       id: "actions",
       enableSorting: false,
