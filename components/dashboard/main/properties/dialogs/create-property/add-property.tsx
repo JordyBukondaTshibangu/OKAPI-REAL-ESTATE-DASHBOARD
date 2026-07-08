@@ -51,7 +51,6 @@ function useInfiniteAgencies() {
   const [search, setSearch] = useState("");
   const [cachedSearch, setCachedSearch] = useState("");
   const [prevData, setPrevData] = useState<Agency[] | undefined>(undefined);
-  const [prevData, setPrevData] = useState<Agency[] | undefined>(undefined);
 
   if (cachedSearch !== search) {
     setCachedSearch(search);
@@ -453,12 +452,6 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
       minStayNights: undefined,
       maxStayNights: undefined,
       shortTermNotes: "",
-      isShortTerm: false,
-      isLongTerm: true,
-      pricePerNight: undefined,
-      minStayNights: undefined,
-      maxStayNights: undefined,
-      shortTermNotes: "",
     },
     mode: "onChange",
   });
@@ -558,18 +551,6 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
 
         const payload = {
           ...values,
-          period: values.period || undefined,
-          transaction: values.transaction || undefined,
-          gallery: galleryUrls,
-          amenities: splitTrim(values.amenities),
-          description: values.description || undefined,
-          reference: values.reference || undefined,
-          zone: values.zone || undefined,
-          brokerLicense: values.brokerLicense || undefined,
-          agentLicense: values.agentLicense || undefined,
-          permitNumber: values.permitNumber || undefined,
-          availableFrom: values.availableFrom || undefined,
-          shortTermNotes: values.shortTermNotes || undefined,
           period: values.period || undefined,
           transaction: values.transaction || undefined,
           gallery: galleryUrls,
