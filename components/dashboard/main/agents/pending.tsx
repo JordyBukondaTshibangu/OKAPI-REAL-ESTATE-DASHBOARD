@@ -1,28 +1,26 @@
 "use client";
 
-import { CirclePlus } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import { Loading } from "@/components/common/loading";
 import { Button } from "@/components/ui/button";
 import { PAGE_SIZE } from "@/constants";
 import { useAgents } from "@/lib/queries/agents";
 import { useAgentStore } from "@/lib/stores/agents";
+import { useTranslation } from "@/hooks/use-translation";
 import { SEARCH_TYPE } from "@/types";
 import AgentsTable, { AgentDialogType } from "../_common/agents-table";
-import EmptyTable from "../_common/empty-table";
 import SearchInput from "../_common/molecules/search-input";
-import AddAgent from "./dialogs/create-agent/add-agent";
 import DeleteAgentDialog from "./dialogs/delete-agent";
-import { useTranslation } from "@/hooks/use-translation";
+import AddAgent from "./dialogs/create-agent/add-agent";
 
-const SEARCH_OPTIONS = ["Name", "All Fields"];
-
-function Agents() {
+function PendingAgents() {
   const router = useRouter();
   const urlSearchParams = useSearchParams();
   const t = useTranslation();
+  const tp = t.agents.pending;
 
   const {
     selectedAgent,
@@ -33,12 +31,16 @@ function Agents() {
     setParams,
   } = useAgentStore();
 
-  // URL is the single source of truth for the current page.
-  // This ensures refresh, browser back, and link sharing all work correctly.
   const rawPage = parseInt(urlSearchParams.get("queryPage") ?? "1", 10);
   const currentPage = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
 
-  const queryParams = { ...params, page: currentPage, pageSize: PAGE_SIZE };
+  // Always filter for pending-approval agents
+  const queryParams = {
+    ...params,
+    page: currentPage,
+    pageSize: PAGE_SIZE,
+    pending: true as const,
+  };
 
   const { data, isLoading } = useAgents(queryParams);
 
@@ -58,9 +60,6 @@ function Agents() {
   const handleSortingChange = useCallback(
     (key: string, dir: "asc" | "desc") => {
       setParams({ ...params, sortBy: key || undefined, sortOrder: key ? dir : undefined });
-      // Reset to page 1 on sort change, but only navigate if we're not
-      // already there - otherwise every sort click fires a needless full
-      // RSC round-trip that looks/feels like a page reload.
       if (currentPage !== 1) {
         const next = new URLSearchParams(urlSearchParams.toString());
         next.set("queryPage", "1");
@@ -73,52 +72,68 @@ function Agents() {
   const handleReset = useCallback(() => {
     setParams({});
     if (currentPage !== 1) {
-      const next = new URLSearchParams();
-      next.set("queryPage", "1");
-      router.push(`?${next.toString()}`, { scroll: false });
+      router.push("?queryPage=1", { scroll: false });
     }
   }, [setParams, router, currentPage]);
 
-  const hasNoResults = agents.length === 0;
-  const isSearchActive = Boolean(params?.search || params?.searchName);
-  const showGlobalEmptyState = !isLoading && hasNoResults && !isSearchActive;
+  const SEARCH_OPTIONS = [...tp.searchOptions];
 
   return (
     <>
-      {showGlobalEmptyState ? (
-        <EmptyTable
-          buttonText={t.agents.createAgent}
-          title={t.agents.emptyTitle}
-          description={t.agents.emptyDesc}
-          buttonOnClick={() => toggleDialog("addAgent", true)}
-        />
-      ) : (
-        <div className="flex flex-col gap-6">
-          {isLoading && <Loading label={t.agents.loading} />}
+      <div className="flex flex-col gap-6">
+        {isLoading && <Loading label={tp.loading} />}
 
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3">
-              <span className="w-1 h-6 bg-brand-blue rounded-full" />
-              <div>
-                <h1 className="text-lg font-semibold text-foreground">{t.agents.title}</h1>
-                <p className="text-xs text-muted-foreground">{t.agents.subtitle}</p>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/agents")}
+              className="flex items-center justify-center w-8 h-8 rounded-lg border border-border hover:bg-muted transition-colors"
+              aria-label={tp.backLabel}
+            >
+              <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <span className="w-1 h-6 bg-amber-500 rounded-full" />
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold text-foreground">{tp.title}</h1>
+                {totalCount !== undefined && totalCount > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[11px] font-bold">
+                    <AlertCircle className="w-3 h-3" />
+                    {totalCount}
+                  </span>
+                )}
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <SearchInput
-                reset={handleReset}
-                setParams={setParams}
-                type={SEARCH_TYPE.AGENT}
-                options={SEARCH_OPTIONS}
-                setCurrentPage={(page: number | ((prev: number) => number)) => handlePageChange(typeof page === "function" ? page(currentPage) : page)}
-              />
-              <Button onClick={() => toggleDialog("addAgent", true)} className="h-9 px-4">
-                <CirclePlus />
-                {t.agents.addAgent}
-              </Button>
+              <p className="text-xs text-muted-foreground">
+                {tp.subtitle}
+              </p>
             </div>
           </div>
 
+          <SearchInput
+            reset={handleReset}
+            setParams={setParams}
+            type={SEARCH_TYPE.AGENT}
+            options={SEARCH_OPTIONS}
+            setCurrentPage={(page: number | ((prev: number) => number)) =>
+              handlePageChange(typeof page === "function" ? page(currentPage) : page)
+            }
+          />
+        </div>
+
+        {!isLoading && agents.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center">
+              <AlertCircle className="w-8 h-8 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-base font-semibold text-foreground">{tp.emptyTitle}</p>
+              <p className="text-sm text-muted-foreground mt-1">{tp.emptyDesc}</p>
+            </div>
+            <Button variant="outline" onClick={() => router.push("/agents")}>
+              {tp.viewAll}
+            </Button>
+          </div>
+        ) : (
           <AgentsTable
             agents={agents}
             totalPages={totalPages}
@@ -129,11 +144,11 @@ function Agents() {
             onPageChange={handlePageChange}
             onSortChange={handleSortingChange}
             setSelectedAgency={setSelectedAgent}
-            emptyMessage={isSearchActive && hasNoResults ? t.agents.noResults : undefined}
+            emptyMessage={tp.noSearchResults}
             toggleDialog={(key: AgentDialogType, value: boolean) => toggleDialog(key, value)}
           />
-        </div>
-      )}
+        )}
+      </div>
 
       <DeleteAgentDialog
         agent={selectedAgent!}
@@ -152,4 +167,4 @@ function Agents() {
   );
 }
 
-export default Agents;
+export default PendingAgents;

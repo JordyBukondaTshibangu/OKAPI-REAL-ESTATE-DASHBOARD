@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Home, Search, Users } from "lucide-react";
+import { Building2, ClipboardList, Home, Search, Star, Users } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -11,10 +11,13 @@ import AddAgent from "@/components/dashboard/main/agents/dialogs/create-agent/ad
 import AddAgency from "@/components/dashboard/main/agencies/dialogs/create-agency/add-agency";
 import AddProperty from "@/components/dashboard/main/properties/dialogs/create-property/add-property";
 import { useTranslation } from "@/hooks/use-translation";
+import { usePendingAgentsCount } from "@/lib/queries/agents";
 
 function QuickActions() {
   const router = useRouter();
   const t = useTranslation();
+  const { data: pendingCount } = usePendingAgentsCount();
+  const pending = typeof pendingCount === "number" && pendingCount > 0 ? pendingCount : null;
   const [dialogs, setDialogs] = useState({
     addAgent: false,
     addAgency: false,
@@ -78,14 +81,43 @@ function QuickActions() {
             </Button>
           ))}
 
-          <Separator className="my-1 opacity-50" />
+          <div className="flex items-center gap-2 pt-1">
+            <Separator className="flex-1 opacity-50" />
+            <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider whitespace-nowrap">
+              Actions rapides
+            </span>
+            <Separator className="flex-1 opacity-50" />
+          </div>
+
+          <Button
+            variant="ghost"
+            onClick={() => router.push("/agents/pending")}
+            className="w-full justify-start gap-3 text-amber-600 hover:text-amber-700 hover:bg-amber-50 h-9"
+          >
+            <ClipboardList className="w-4 h-4 shrink-0" />
+            <span className="flex-1 text-left">File d&apos;approbation</span>
+            {pending !== null && (
+              <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none shrink-0">
+                {pending}
+              </span>
+            )}
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={() => router.push("/properties?boosted=true")}
+            className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground h-9"
+          >
+            <Star className="w-4 h-4 shrink-0" />
+            Gérer les boosts
+          </Button>
 
           <Button
             variant="ghost"
             onClick={() => router.push("/properties")}
             className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground h-9"
           >
-            <Search className="w-4 h-4" />
+            <Search className="w-4 h-4 shrink-0" />
             {t.dashboard.browseAllProperties}
           </Button>
         </CardContent>

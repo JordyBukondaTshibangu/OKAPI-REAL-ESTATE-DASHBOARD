@@ -25,12 +25,18 @@ export default function MainHeaderLayout() {
     settings: t.settings.title,
   };
 
+  // Sub-route labels (e.g. /agents/pending → "File d'approbation")
+  const SUB_TITLES: Record<string, string> = {
+    pending: t.agents.pending.title,
+  };
+
   const pathSegments = useMemo(() => pathname.split("/").filter(Boolean), [pathname]);
 
   const currentPage = pathSegments[0] ?? "dashboard";
   const detailId = pathSegments[1];
 
   const headerTitle = HEADER_TITLES[currentPage] ?? capitalize(currentPage);
+  const detailLabel = detailId ? (SUB_TITLES[detailId] ?? capitalize(detailId)) : undefined;
 
   return (
     <header className="w-full absolute top-0 right-0 z-20">
@@ -39,10 +45,10 @@ export default function MainHeaderLayout() {
 
           <h1 className="text-sm font-semibold capitalize text-foreground flex items-center gap-2">
             <span className="text-muted-foreground">{headerTitle}</span>
-            {detailId && (
+            {detailLabel && (
               <>
                 <ChevronRight className="size-3.5 text-brand-gold" />
-                <span className="text-foreground">{detailId}</span>
+                <span className="text-foreground">{detailLabel}</span>
               </>
             )}
           </h1>
