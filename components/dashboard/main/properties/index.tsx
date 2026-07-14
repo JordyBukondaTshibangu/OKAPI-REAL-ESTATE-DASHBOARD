@@ -6,8 +6,9 @@ import { useCallback } from "react";
 
 import { Loading } from "@/components/common/loading";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PAGE_SIZE } from "@/constants";
-import { useProperties } from "@/lib/queries/properties";
+import { useProperties, usePendingProperties } from "@/lib/queries/properties";
 import { usePropertyStore } from "@/lib/stores/properties";
 import { SEARCH_TYPE } from "@/types";
 import EmptyTable from "../_common/empty-table";
@@ -15,6 +16,7 @@ import SearchInput from "../_common/molecules/search-input";
 import PropertiesTable, { PropertyDialogType } from "../_common/properties-table";
 import AddProperty from "./dialogs/create-property/add-property";
 import DeletePropertyDialog from "./dialogs/delete-agent";
+import PendingProperties from "./pending-properties";
 import { useTranslation } from "@/hooks/use-translation";
 
 const SEARCH_OPTIONS = ["Name", "All Fields"];
@@ -34,10 +36,12 @@ function Properties() {
   } = usePropertyStore();
 
   const currentPage = Math.max(1, Number(urlSearchParams.get("queryPage") ?? "1"));
+  const activeTab = urlSearchParams.get("tab") ?? "live";
 
   const queryParams = { ...params, page: currentPage, pageSize: PAGE_SIZE };
 
   const { data, isLoading } = useProperties(queryParams);
+  const { data: pendingList = [] } = usePendingProperties();
 
   const properties = Array.isArray(data?.data) ? data.data : [];
   const totalPages = typeof data?.totalPages === "number" ? data.totalPages : null;
@@ -52,12 +56,19 @@ function Properties() {
     [router, urlSearchParams],
   );
 
+  const handleTabChange = useCallback(
+    (tab: string) => {
+      const next = new URLSearchParams(urlSearchParams.toString());
+      next.set("tab", tab);
+      next.set("queryPage", "1");
+      router.push(`?${next.toString()}`, { scroll: false });
+    },
+    [router, urlSearchParams],
+  );
+
   const handleSortingChange = useCallback(
     (key: string, dir: "asc" | "desc") => {
       setParams({ ...params, sortBy: key || undefined, sortOrder: key ? dir : undefined });
-      // Sorting doesn't change the URL by itself - only reset pagination (and
-      // trigger a navigation) if we're not already on page 1, otherwise this
-      // fires a full RSC round-trip on every sort click for nothing.
       if (currentPage !== 1) {
         const next = new URLSearchParams(urlSearchParams.toString());
         next.set("queryPage", "1");
@@ -78,59 +89,88 @@ function Properties() {
 
   const hasNoResults = properties.length === 0;
   const isSearchActive = Boolean(params?.search || params?.searchName);
-  const showGlobalEmptyState = !isLoading && hasNoResults && !isSearchActive;
+  const showGlobalEmptyState = !isLoading && hasNoResults && !isSearchActive && activeTab === "live";
 
   return (
     <>
-      {showGlobalEmptyState ? (
-        <EmptyTable
-          buttonText={t.properties.createProperty}
-          title={t.properties.emptyTitle}
-          description={t.properties.emptyDesc}
-          buttonOnClick={() => toggleDialog("addProperty", true)}
-        />
-      ) : (
-        <div className="flex flex-col gap-6">
-          {isLoading && <Loading label={t.properties.loading} />}
-
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3">
-              <span className="w-1 h-6 bg-brand-navy rounded-full" />
-              <div>
-                <h1 className="text-lg font-semibold text-foreground">{t.properties.title}</h1>
-                <p className="text-xs text-muted-foreground">{t.properties.subtitle}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <SearchInput
-                reset={handleReset}
-                setParams={setParams}
-                type={SEARCH_TYPE.PROPERTY}
-                options={SEARCH_OPTIONS}
-                setCurrentPage={(page: number | ((prev: number) => number)) => handlePageChange(typeof page === "function" ? page(currentPage) : page)}
-              />
-              <Button onClick={() => toggleDialog("addProperty", true)} className="h-9 px-4">
-                <CirclePlus />
-                {t.properties.addProperty}
-              </Button>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+          <div className="flex items-center gap-3">
+            <span className="w-1 h-6 bg-brand-navy rounded-full" />
+            <div>
+              <h1 className="text-lg font-semibold text-foreground">{t.properties.title}</h1>
+              <p className="text-xs text-muted-foreground">{t.properties.subtitle}</p>
             </div>
           </div>
-
-          <PropertiesTable
-            properties={properties}
-            totalPages={totalPages}
-            totalCount={totalCount}
-            currentPage={currentPage}
-            searchParams={params}
-            selectedAgent={selectedProperty}
-            onPageChange={handlePageChange}
-            onSortChange={handleSortingChange}
-            setSelectedAgency={setSelectedProperty}
-            emptyMessage={isSearchActive && hasNoResults ? t.properties.noResults : undefined}
-            toggleDialog={(key: PropertyDialogType, value: boolean) => toggleDialog(key, value)}
-          />
+          <div className="flex items-center gap-2">
+            {activeTab === "live" && (
+              <>
+                <SearchInput
+                  reset={handleReset}
+                  setParams={setParams}
+                  type={SEARCH_TYPE.PROPERTY}
+                  options={SEARCH_OPTIONS}
+                  setCurrentPage={(page: number | ((prev: number) => number)) =>
+                    handlePageChange(typeof page === "function" ? page(currentPage) : page)
+                  }
+                />
+                <Button onClick={() => toggleDialog("addProperty", true)} className="h-9 px-4">
+                  <CirclePlus />
+                  {t.properties.addProperty}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-      )}
+
+        <TabsList className="mb-6">
+          <TabsTrigger value="live">Actives</TabsTrigger>
+          <TabsTrigger value="pending" className="relative">
+            En attente
+            {pendingList.length > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-red-500 text-white">
+                {pendingList.length > 9 ? "9+" : pendingList.length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="live">
+          {showGlobalEmptyState ? (
+            <EmptyTable
+              buttonText={t.properties.createProperty}
+              title={t.properties.emptyTitle}
+              description={t.properties.emptyDesc}
+              buttonOnClick={() => toggleDialog("addProperty", true)}
+            />
+          ) : (
+            <div className="flex flex-col gap-6">
+              {isLoading && <Loading label={t.properties.loading} />}
+              <PropertiesTable
+                properties={properties}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                currentPage={currentPage}
+                searchParams={params}
+                selectedAgent={selectedProperty}
+                onPageChange={handlePageChange}
+                onSortChange={handleSortingChange}
+                setSelectedAgency={setSelectedProperty}
+                emptyMessage={
+                  isSearchActive && hasNoResults ? t.properties.noResults : undefined
+                }
+                toggleDialog={(key: PropertyDialogType, value: boolean) =>
+                  toggleDialog(key, value)
+                }
+              />
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="pending">
+          <PendingProperties />
+        </TabsContent>
+      </Tabs>
 
       <DeletePropertyDialog
         property={selectedProperty!}

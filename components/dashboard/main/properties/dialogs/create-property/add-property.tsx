@@ -306,6 +306,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
       minStayNights: undefined,
       maxStayNights: undefined,
       shortTermNotes: "",
+      landmark: "",
+      isFurnished: false,
     },
     mode: "onChange",
   });
@@ -409,6 +411,8 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
           permitNumber:    values.permitNumber    || undefined,
           availableFrom:   values.availableFrom   || undefined,
           shortTermNotes:  values.shortTermNotes  || undefined,
+          landmark:        (values as any).landmark || undefined,
+          isFurnished:     (values as any).isFurnished ?? false,
         };
         await createProperty(payload);
         toast.success(fp.toast.created);
@@ -724,6 +728,27 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         )}
                       />
                     </div>
+                    <FormField
+                      control={control}
+                      name={"landmark" as any}
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>Landmark / Point de repère</Label>
+                          <Input {...field} value={field.value ?? ""} placeholder="Near central market, Saint-Pierre school…" />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={control}
+                      name={"isFurnished" as any}
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-2 space-y-0">
+                          <Checkbox id="create-isFurnished" checked={!!field.value} onCheckedChange={field.onChange} />
+                          <Label htmlFor="create-isFurnished" className="text-sm font-normal cursor-pointer">Furnished / Meublé</Label>
+                        </FormItem>
+                      )}
+                    />
                   </>
                 )}
 

@@ -146,6 +146,8 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
       minStayNights: property.minStayNights ?? undefined,
       maxStayNights: property.maxStayNights ?? undefined,
       shortTermNotes: property.shortTermNotes ?? "",
+      landmark: (property as any).landmark ?? "",
+      isFurnished: (property as any).isFurnished ?? false,
     },
     mode: "onChange",
   });
@@ -191,6 +193,8 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
           permitNumber: values.permitNumber || undefined,
           availableFrom: values.availableFrom || undefined,
           shortTermNotes: values.shortTermNotes || undefined,
+          landmark: (values as any).landmark || undefined,
+          isFurnished: (values as any).isFurnished ?? false,
         });
         toast.success("Property updated successfully");
         setOpen(false);
@@ -373,6 +377,28 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                       />
                     ))}
                   </div>
+
+                  <FormField
+                    control={control}
+                    name={"landmark" as any}
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label>Landmark / Point de repère</Label>
+                        <Input {...field} value={field.value ?? ""} placeholder="Near central market, Saint-Pierre school…" />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={control}
+                    name={"isFurnished" as any}
+                    render={({ field }) => (
+                      <FormItem className="flex items-center gap-2 space-y-0">
+                        <Checkbox id="edit-isFurnished" checked={!!field.value} onCheckedChange={field.onChange} />
+                        <Label htmlFor="edit-isFurnished" className="text-sm font-normal cursor-pointer">Furnished / Meublé</Label>
+                      </FormItem>
+                    )}
+                  />
 
                   {/* Media */}
                   <SectionTitle>Media & Features</SectionTitle>
