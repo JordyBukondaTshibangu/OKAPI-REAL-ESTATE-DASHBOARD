@@ -61,6 +61,9 @@ export const addPropertySchema = z.object({
   minStayNights: z.number().int().min(1).optional(),
   maxStayNights: z.number().int().min(1).optional(),
   shortTermNotes: z.string().trim().optional(),
+  // Agent-facing fields
+  landmark: z.string().trim().optional(),
+  isFurnished: z.boolean().optional(),
 });
 
 export type AddPropertyFormValues = z.infer<typeof addPropertySchema>;
