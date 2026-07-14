@@ -70,3 +70,32 @@ export function useDeleteProperty() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [PROPERTIES_KEY] }),
   });
 }
+
+export function usePendingProperties() {
+  return useQuery<Property[]>({
+    queryKey: [PROPERTIES_KEY, "pending"],
+    queryFn: async () => {
+      const { data } = await api.get("/api/properties/admin/pending");
+      return Array.isArray(data) ? data : [];
+    },
+    refetchInterval: 30_000,
+  });
+}
+
+export function useApproveProperty() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post(`/api/properties/${id}/approve`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [PROPERTIES_KEY] }),
+  });
+}
+
+export function useRejectProperty() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      api.post(`/api/properties/${id}/reject`, { reason }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [PROPERTIES_KEY] }),
+  });
+}

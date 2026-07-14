@@ -366,7 +366,11 @@
 
   /* ── Gradient text (primary blue → gold) */
   .gradient-text {
-    background: linear-gradient(90deg, var(--brand-blue) 0%, var(--brand-gold) 100%);
+    background: linear-gradient(
+      90deg,
+      var(--brand-blue) 0%,
+      var(--brand-gold) 100%
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -379,16 +383,20 @@
     border-top: 3px solid var(--brand-gold);
     border-radius: var(--radius);
     box-shadow: 0 2px 12px color-mix(in srgb, var(--brand-navy) 8%, transparent);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    transition:
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
   }
   .stat-card:hover {
-    box-shadow: 0 6px 24px color-mix(in srgb, var(--brand-navy) 14%, transparent);
+    box-shadow: 0 6px 24px
+      color-mix(in srgb, var(--brand-navy) 14%, transparent);
     transform: translateY(-2px);
   }
 
   /* ── Table header row with brand fill */
   .table-header-brand {
     background: color-mix(in srgb, var(--brand-navy) 5%, var(--background) 95%);
-    border-bottom: 2px solid color-mix(in srgb, var(--brand-gold) 30%, transparent);
+    border-bottom: 2px solid
+      color-mix(in srgb, var(--brand-gold) 30%, transparent);
   }
 }

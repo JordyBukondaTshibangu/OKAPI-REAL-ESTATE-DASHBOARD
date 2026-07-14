@@ -13,6 +13,7 @@ import { useState } from "react";
 import { DataTableColumnHeader } from "@/components/dashboard/main/_common/data-table/atoms/column-header";
 import { AgentRowActions } from "@/components/dashboard/main/_common/data-table/atoms/actions/agent-row";
 import HighlightText from "@/components/dashboard/main/_common/atoms/highlight-text";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Agent } from "@/types";
 
 export type AgentDialogType = "deleteAgent" | "editAgent";
@@ -84,39 +85,44 @@ function GracePeriodCell({ graceEndsAt }: { graceEndsAt?: string }) {
   if (!graceEndsAt) return <span className="text-muted-foreground text-xs">–</span>;
 
   const diffDays = Math.ceil((new Date(graceEndsAt).getTime() - Date.now()) / 86_400_000);
+  const formattedDate = new Date(graceEndsAt).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 
+  let badge: React.ReactNode;
   if (diffDays <= 0) {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-[11px] font-semibold">
+    badge = (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-[11px] font-semibold w-fit">
         <CircleDot className="size-3 shrink-0" />
         Expirée
       </span>
     );
-  }
-  if (diffDays <= 30) {
-    return (
-      <div className="flex flex-col gap-0.5">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold w-fit">
-          <Clock className="size-3 shrink-0" />
-          {diffDays}j restants
-        </span>
-        <span className="text-[10px] text-muted-foreground px-1">
-          {new Date(graceEndsAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
-        </span>
-      </div>
+  } else if (diffDays <= 30) {
+    badge = (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold w-fit">
+        <Clock className="size-3 shrink-0" />
+        {diffDays}j restants
+      </span>
     );
-  }
-  const months = Math.ceil(diffDays / 30);
-  return (
-    <div className="flex flex-col gap-0.5">
+  } else {
+    const months = Math.ceil(diffDays / 30);
+    badge = (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold w-fit">
         <BadgeCheck className="size-3 shrink-0" />
         {months} mois restants
       </span>
-      <span className="text-[10px] text-muted-foreground px-1">
-        {new Date(graceEndsAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
-      </span>
-    </div>
+    );
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="w-fit">{badge}</div>
+      </TooltipTrigger>
+      <TooltipContent>Expire le {formattedDate}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -149,7 +155,7 @@ export function getAgentsColumns(
             {/* Name + email + badges */}
             <div className="flex flex-col gap-0.5 min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-semibold text-sm text-foreground leading-none">
+                <span className="font-semibold text-[15px] text-foreground leading-none">
                   <HighlightText
                     text={safeString(agent.name)}
                     query={nameQuery || genericQuery}
@@ -166,14 +172,12 @@ export function getAgentsColumns(
                   </span>
                 )}
               </div>
-              <span className="text-[11px] text-muted-foreground truncate leading-none mt-0.5">
+              <span className="text-[13px] text-muted-foreground truncate leading-none mt-1">
                 {agent.email ?? "–"}
+                {agent.phoneNumber && (
+                  <span className="text-muted-foreground/60"> · {agent.phoneNumber}</span>
+                )}
               </span>
-              {agent.phoneNumber && (
-                <span className="text-[11px] text-muted-foreground/70 truncate leading-none">
-                  {agent.phoneNumber}
-                </span>
-              )}
             </div>
           </div>
         );
@@ -190,7 +194,7 @@ export function getAgentsColumns(
         const planCfg = PLAN_CONFIG[plan ?? "FREE"] ?? PLAN_CONFIG.FREE;
 
         return (
-          <div className="flex flex-col gap-1.5 w-fit">
+          <div className="flex items-center gap-1.5 flex-wrap w-fit">
             {tier === "VERIFIE" ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold">
                 <BadgeCheck className="size-3.5 shrink-0" />
@@ -257,10 +261,17 @@ export function getAgentsColumns(
         if (communes.length === 0) return <span className="text-muted-foreground text-xs">–</span>;
         const [first, ...rest] = communes;
         return (
-          <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5">
             <span className="text-sm text-foreground">{first}</span>
             {rest.length > 0 && (
-              <span className="text-[11px] text-muted-foreground">+{rest.length} autres</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-[11px] text-muted-foreground bg-muted rounded-full px-1.5 py-0.5 cursor-default">
+                    +{rest.length}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{rest.join(", ")}</TooltipContent>
+              </Tooltip>
             )}
           </div>
         );
