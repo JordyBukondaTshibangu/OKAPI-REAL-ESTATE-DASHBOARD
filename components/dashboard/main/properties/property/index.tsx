@@ -10,6 +10,7 @@ import {
   Home,
   ImageIcon,
   Landmark,
+  Loader2,
   MapPin,
   MoreVertical,
   Package,
@@ -22,6 +23,7 @@ import {
   User,
   Warehouse,
   X,
+  XCircle,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -37,10 +39,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import { useProperty } from "@/lib/queries/properties";
+import { useApproveProperty, useProperty, useRejectProperty } from "@/lib/queries/properties";
 import DeletePropertyDialog from "../dialogs/delete-agent";
 import EditProperty from "../dialogs/edit-property/edit-property";
 import PerformanceChart from "./performance-chart";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 type Props = { propertyId: string };
 
@@ -83,11 +94,18 @@ function PropertyDetail({ propertyId }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentPageQuery = searchParams.get("queryPage");
+  const fromPending = searchParams.get("from") === "pending";
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   const { data: property, isLoading } = useProperty(propertyId);
+  const approve = useApproveProperty();
+  const reject = useRejectProperty();
+
+  const isPending = (property as any)?.status === "PENDING";
 
   if (isLoading) return <Loading label="Loading property" />;
   if (!property) return null;
@@ -128,12 +146,14 @@ function PropertyDetail({ propertyId }: Props) {
           variant="ghost"
           size="sm"
           onClick={() =>
-            router.push(`/properties?queryPage=${currentPageQuery}`)
+            fromPending
+              ? router.push("/properties?tab=pending")
+              : router.push(`/properties?queryPage=${currentPageQuery}`)
           }
           className="gap-2 text-muted-foreground hover:text-foreground -ml-2"
         >
           <ArrowLeft className="size-4" />
-          Back to Properties
+          {fromPending ? "Retour aux demandes" : "Back to Properties"}
         </Button>
 
         <DropdownMenu>
@@ -157,6 +177,54 @@ function PropertyDetail({ propertyId }: Props) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* ── Pending review banner ──────────────────────────────── */}
+      {isPending && (
+        <div className="flex items-center justify-between gap-4 flex-wrap rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+              <BadgeCheck className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                En attente de validation
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Vérifiez tous les détails ci-dessous avant d'approuver ou de rejeter.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
+              onClick={() =>
+                approve.mutate(propertyId, {
+                  onSuccess: () => router.push("/properties?tab=pending"),
+                })
+              }
+              disabled={approve.isPending || reject.isPending}
+            >
+              {approve.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <BadgeCheck className="w-3.5 h-3.5" />
+              )}
+              Approuver
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-red-200 text-red-600 hover:bg-red-50 gap-1.5"
+              onClick={() => { setRejectOpen(true); setRejectReason(""); }}
+              disabled={approve.isPending || reject.isPending}
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              Rejeter
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* ── Hero card ──────────────────────────────────────────── */}
       <div className="relative rounded-2xl overflow-hidden">
@@ -418,6 +486,63 @@ function PropertyDetail({ propertyId }: Props) {
         </div>
       </div>
 
+      {/* ── Extra details (furnished, availability, amenities) ─── */}
+      {(() => {
+        const p = property as any;
+        const rows = [
+          p.isFurnished !== undefined && { label: "Meublé", value: p.isFurnished ? "Oui" : "Non" },
+          p.availableFrom && { label: "Disponible à partir du", value: new Date(p.availableFrom).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) },
+          p.landmark && { label: "Point de repère", value: p.landmark },
+          p.isShortTerm && { label: "Courte durée", value: "Oui" },
+          p.pricePerNight && { label: "Prix/nuit", value: `${p.currency ?? ""} ${Number(p.pricePerNight).toLocaleString()}` },
+          p.minStayNights && { label: "Séjour min.", value: `${p.minStayNights} nuits` },
+          p.maxStayNights && { label: "Séjour max.", value: `${p.maxStayNights} nuits` },
+        ].filter(Boolean) as { label: string; value: string }[];
+
+        const amenities: string[] = Array.isArray(p.amenities) ? p.amenities : [];
+
+        if (rows.length === 0 && amenities.length === 0) return null;
+
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {rows.length > 0 && (
+              <Card className="card-luxury">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold">Caractéristiques</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-0">
+                  {rows.map(({ label, value }, i) => (
+                    <div key={label}>
+                      <div className="flex items-center justify-between py-2.5">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">{label}</span>
+                        <span className="text-sm text-foreground font-medium">{value}</span>
+                      </div>
+                      {i < rows.length - 1 && <Separator className="opacity-50" />}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+            {amenities.length > 0 && (
+              <Card className="card-luxury">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold">Équipements ({amenities.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {amenities.map((a) => (
+                      <span key={a} className="text-xs px-2.5 py-1 rounded-full bg-brand-blue/10 text-brand-blue font-medium capitalize">
+                        {a}
+                      </span>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        );
+      })()}
+
       {/* ── Gallery ────────────────────────────────────────────── */}
       {property.gallery && property.gallery.length > 0 && (
         <Card className="card-luxury">
@@ -508,6 +633,42 @@ function PropertyDetail({ propertyId }: Props) {
         open={editOpen}
         setOpen={setEditOpen}
       />
+
+      {/* ── Reject dialog ──────────────────────────────────────── */}
+      <Dialog open={rejectOpen} onOpenChange={(v) => { if (!v) setRejectOpen(false); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeter l'annonce</DialogTitle>
+            <DialogDescription>
+              Indiquez la raison du rejet. L'agent en sera informé.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="Ex : Photos insuffisantes, prix incohérent avec le marché…"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            className="min-h-[100px]"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={!rejectReason.trim() || reject.isPending}
+              onClick={() =>
+                reject.mutate(
+                  { id: propertyId, reason: rejectReason.trim() },
+                  { onSuccess: () => { setRejectOpen(false); router.push("/properties?tab=pending"); } },
+                )
+              }
+            >
+              {reject.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+              Confirmer le rejet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

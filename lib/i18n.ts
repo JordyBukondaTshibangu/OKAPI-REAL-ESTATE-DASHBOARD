@@ -41,6 +41,8 @@ export const translations = {
       emptyTitle: "No Agents created yet!",
       emptyDesc: "Add your first agent to get started.",
       noResults: "No results found",
+      tabActive: "Active",
+      tabPending: "Pending",
       pending: {
         title: "Approval Queue",
         subtitle: "Agents who completed registration and are awaiting your approval",
@@ -469,6 +471,8 @@ export const translations = {
       emptyTitle: "Aucun agent créé pour l'instant !",
       emptyDesc: "Ajoutez votre premier agent pour commencer.",
       noResults: "Aucun résultat trouvé",
+      tabActive: "Actifs",
+      tabPending: "En attente",
       pending: {
         title: "File d'approbation",
         subtitle: "Agents ayant complété l'inscription et attendant votre approbation",

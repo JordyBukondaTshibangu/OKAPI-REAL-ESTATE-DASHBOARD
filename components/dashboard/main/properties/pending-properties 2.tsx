@@ -6,11 +6,11 @@ import {
   Building2,
   CheckCircle,
   Eye,
+  Home,
   Loader2,
   MapPin,
   User,
   XCircle,
-  Home,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -31,8 +31,6 @@ import {
   useRejectProperty,
 } from "@/lib/queries/properties";
 import { Loading } from "@/components/common/loading";
-import { useTranslation } from "@/hooks/use-translation";
-import { PropertyDetailSheet } from "./property-detail-sheet";
 
 function resolveAgentName(agent: unknown): string {
   if (!agent || typeof agent !== "object") return "–";
@@ -43,34 +41,34 @@ export default function PendingProperties() {
   const { data: pending = [], isLoading } = usePendingProperties();
   const approve = useApproveProperty();
   const reject = useRejectProperty();
-  const t = useTranslation().properties;
 
   const [rejectTarget, setRejectTarget] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-  const [detailId, setDetailId] = useState<string | null>(null);
 
-  if (isLoading) return <Loading label={t.pendingLoading} />;
+  if (isLoading) return <Loading label="Chargement des annonces en attente…" />;
 
   if (pending.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
         <CheckCircle className="w-12 h-12 text-green-500" />
-        <p className="text-lg font-semibold text-foreground">{t.pendingEmpty}</p>
-        <p className="text-sm text-muted-foreground">{t.pendingEmptyDesc}</p>
+        <p className="text-lg font-semibold text-foreground">Aucune annonce en attente</p>
+        <p className="text-sm text-muted-foreground">
+          Toutes les soumissions ont été traitées.
+        </p>
       </div>
     );
   }
-
-  const countLabel = pending.length > 1 ? t.pendingCountPlural : t.pendingCountSingular;
 
   return (
     <>
       <div className="flex items-center gap-3 mb-4">
         <span className="w-1 h-6 bg-brand-navy rounded-full" />
         <div>
-          <h1 className="text-lg font-semibold text-foreground">{t.pendingTitle}</h1>
+          <h1 className="text-lg font-semibold text-foreground">
+            Annonces en attente
+          </h1>
           <p className="text-xs text-muted-foreground">
-            {pending.length} {countLabel}
+            {pending.length} annonce{pending.length > 1 ? "s" : ""} à examiner
           </p>
         </div>
       </div>
@@ -89,27 +87,19 @@ export default function PendingProperties() {
             null;
 
           return (
-            <Card
-              key={p.id}
-              className="border border-border hover:border-brand-blue/40 hover:shadow-md transition-all cursor-pointer"
-              onClick={() => setDetailId(p.id)}
-            >
+            <Card key={p.id} className="border border-border">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   {/* Left: listing info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                        {t.badgePending}
+                        En attente
                       </Badge>
                       {(p as any).listingType === "sale" ? (
-                        <Badge variant="outline" className="bg-brand-navy/10 text-brand-navy text-xs">
-                          {t.badgeSale}
-                        </Badge>
+                        <Badge variant="outline" className="bg-brand-navy/10 text-brand-navy text-xs">Vente</Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                          {t.badgeRent}
-                        </Badge>
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">Location</Badge>
                       )}
                       <span className="text-xs text-muted-foreground">
                         #{p.id.slice(-6).toUpperCase()}
@@ -156,16 +146,7 @@ export default function PendingProperties() {
                   </div>
 
                   {/* Right: actions */}
-                  <div className="flex flex-col gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5 text-muted-foreground"
-                      onClick={() => setDetailId(p.id)}
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      Voir détails
-                    </Button>
+                  <div className="flex flex-col gap-2 shrink-0">
                     <Button
                       size="sm"
                       className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
@@ -177,7 +158,7 @@ export default function PendingProperties() {
                       ) : (
                         <BadgeCheck className="w-3.5 h-3.5" />
                       )}
-                      {t.approveBtn}
+                      Approuver
                     </Button>
                     <Button
                       size="sm"
@@ -194,7 +175,7 @@ export default function PendingProperties() {
                       ) : (
                         <XCircle className="w-3.5 h-3.5" />
                       )}
-                      {t.rejectBtn}
+                      Refuser
                     </Button>
                   </div>
                 </div>
@@ -204,12 +185,6 @@ export default function PendingProperties() {
         })}
       </div>
 
-      {/* Property detail sheet */}
-      <PropertyDetailSheet
-        propertyId={detailId}
-        onClose={() => setDetailId(null)}
-      />
-
       {/* Reject dialog */}
       <Dialog
         open={!!rejectTarget}
@@ -217,18 +192,20 @@ export default function PendingProperties() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t.rejectDialogTitle}</DialogTitle>
-            <DialogDescription>{t.rejectDialogDesc}</DialogDescription>
+            <DialogTitle>Refuser cette annonce</DialogTitle>
+            <DialogDescription>
+              L&apos;agent recevra votre explication et pourra corriger et soumettre à nouveau.
+            </DialogDescription>
           </DialogHeader>
           <Textarea
-            placeholder={t.rejectPlaceholder}
+            placeholder="Ex : Photos insuffisantes — ajoutez au moins 3 photos claires du bien."
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             className="min-h-[100px]"
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectTarget(null)}>
-              {t.rejectCancelBtn}
+              Annuler
             </Button>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white"
@@ -241,8 +218,10 @@ export default function PendingProperties() {
                 );
               }}
             >
-              {reject.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
-              {t.rejectConfirmBtn}
+              {reject.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1" />
+              ) : null}
+              Confirmer le refus
             </Button>
           </DialogFooter>
         </DialogContent>

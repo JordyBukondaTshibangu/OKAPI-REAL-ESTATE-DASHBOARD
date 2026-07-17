@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Eye, Heart, Share2 } from "lucide-react";
+import { Activity, Eye, Heart, MessageCircle, Share2 } from "lucide-react";
 import { useMemo } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
@@ -17,6 +17,7 @@ const chartConfig = {
   viewed: { label: "Viewed", color: "var(--brand-blue)" },
   shared: { label: "Shared", color: "var(--brand-gold)" },
   saved: { label: "Saved", color: "#f43f5e" },
+  whatsappClicks: { label: "WhatsApp", color: "#25D366" },
 } satisfies ChartConfig;
 
 type Props = {
@@ -29,6 +30,7 @@ type SeriesPoint = {
   viewed: number;
   shared: number;
   saved: number;
+  whatsappClicks: number;
 };
 
 const DAY_MS = 86_400_000;
@@ -61,6 +63,7 @@ function buildSeries(
       viewed: Math.round(performance.viewed * progress),
       shared: Math.round(performance.shared * progress),
       saved: Math.round(performance.saved * progress),
+      whatsappClicks: Math.round((performance.whatsappClicks ?? 0) * progress),
     };
   });
 }
@@ -75,6 +78,7 @@ function PerformanceChart({ performance, listedDaysAgo }: Props) {
     { icon: Eye, label: "Viewed", value: performance.viewed, color: "text-brand-blue", bg: "bg-brand-blue/10" },
     { icon: Share2, label: "Shared", value: performance.shared, color: "text-brand-gold", bg: "bg-brand-gold/10" },
     { icon: Heart, label: "Saved", value: performance.saved, color: "text-rose-500", bg: "bg-rose-500/10" },
+    { icon: MessageCircle, label: "WhatsApp", value: performance.whatsappClicks ?? 0, color: "text-green-600", bg: "bg-green-500/10" },
   ];
 
   return (
@@ -90,7 +94,7 @@ function PerformanceChart({ performance, listedDaysAgo }: Props) {
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         {/* Totals */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {stats.map(({ icon: Icon, label, value, color, bg }) => (
             <div
               key={label}
@@ -132,7 +136,7 @@ function PerformanceChart({ performance, listedDaysAgo }: Props) {
             />
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
             <defs>
-              {(["viewed", "shared", "saved"] as const).map((key) => (
+              {(["viewed", "shared", "saved", "whatsappClicks"] as const).map((key) => (
                 <linearGradient
                   key={key}
                   id={`fill-${key}`}
@@ -173,6 +177,13 @@ function PerformanceChart({ performance, listedDaysAgo }: Props) {
               type="monotone"
               fill="url(#fill-saved)"
               stroke="var(--color-saved)"
+              strokeWidth={2}
+            />
+            <Area
+              dataKey="whatsappClicks"
+              type="monotone"
+              fill="url(#fill-whatsappClicks)"
+              stroke="var(--color-whatsappClicks)"
               strokeWidth={2}
             />
           </AreaChart>

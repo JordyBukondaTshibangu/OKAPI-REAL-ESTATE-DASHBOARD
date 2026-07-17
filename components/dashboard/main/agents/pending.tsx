@@ -1,8 +1,8 @@
 "use client";
 
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 
 import { Loading } from "@/components/common/loading";
 import { Button } from "@/components/ui/button";
@@ -83,31 +83,16 @@ function PendingAgents() {
       <div className="flex flex-col gap-6">
         {isLoading && <Loading label={tp.loading} />}
 
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push("/agents")}
-              className="flex items-center justify-center w-8 h-8 rounded-lg border border-border hover:bg-muted transition-colors"
-              aria-label={tp.backLabel}
-            >
-              <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-            </button>
-            <span className="w-1 h-6 bg-amber-500 rounded-full" />
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-semibold text-foreground">{tp.title}</h1>
-                {totalCount !== undefined && totalCount > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[11px] font-bold">
-                    <AlertCircle className="w-3 h-3" />
-                    {totalCount}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {tp.subtitle}
-              </p>
-            </div>
-          </div>
+        <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
+          {totalCount !== undefined && totalCount > 0 && (
+            <p className="text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1 mr-2 px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-bold">
+                <AlertCircle className="w-3 h-3" />
+                {totalCount}
+              </span>
+              {tp.subtitle}
+            </p>
+          )}
 
           <SearchInput
             reset={handleReset}
@@ -129,7 +114,10 @@ function PendingAgents() {
               <p className="text-base font-semibold text-foreground">{tp.emptyTitle}</p>
               <p className="text-sm text-muted-foreground mt-1">{tp.emptyDesc}</p>
             </div>
-            <Button variant="outline" onClick={() => router.push("/agents")}>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/agents?tab=active", { scroll: false })}
+            >
               {tp.viewAll}
             </Button>
           </div>
