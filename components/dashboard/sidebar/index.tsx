@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Home,
   LayoutDashboard,
+  Rocket,
   Settings,
   Users,
   type LucideIcon,
@@ -40,6 +41,7 @@ export default function SidebarLayout() {
     { title: t.nav.agents, url: "/agents", icon: Users },
     { title: t.nav.agencies, url: "/agencies", icon: Building2 },
     { title: t.nav.properties, url: "/properties", icon: Home },
+    { title: t.nav.boosts, url: "/boosts", icon: Rocket },
     { title: t.nav.auditLogs, url: "/audit-logs", icon: ClipboardList },
     { title: t.settings.title, url: "/settings", icon: Settings },
   ];
