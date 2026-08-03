@@ -200,7 +200,7 @@ export default function HistoriquePage() {
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Propriété</th>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">{t.colAmount}</th>
                   <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">{t.colPayment}</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">{t.colDate}</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">{t.historiqueDate}</th>
                 </tr>
               </thead>
               <tbody>
