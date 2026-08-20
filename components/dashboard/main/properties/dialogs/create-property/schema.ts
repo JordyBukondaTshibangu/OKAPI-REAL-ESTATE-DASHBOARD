@@ -35,7 +35,7 @@ export const addPropertySchema = z.object({
   verified: z.boolean().optional(),
   premium: z.boolean().optional(),
   isNew: z.boolean().optional(),
-  imageGradient: z.string().trim().min(1, "Image gradient is required"),
+  imageGradient: z.string().trim().optional(),
   iconType: z.enum(["building", "home", "land", "office", "store", "warehouse"]),
   transaction: z.string().optional(),
   gallery: z.string().trim().optional(),

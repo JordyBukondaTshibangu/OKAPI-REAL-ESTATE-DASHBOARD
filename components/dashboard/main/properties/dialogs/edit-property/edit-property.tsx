@@ -35,10 +35,25 @@ import { api } from "@/lib/api";
 import { useUpdateProperty } from "@/lib/queries/properties";
 import { cn } from "@/lib/utils";
 import { Property, PropertyDetail } from "@/types";
-import { addPropertySchema, AddPropertyFormValues } from "../create-property/schema";
+import { editPropertySchema, EditPropertyFormValues } from "./schema";
 
 const MAX_GALLERY_IMAGES = 30;
 type GalleryItem = { file: File; previewUrl: string };
+
+// Strip the R2 public base URL so we send bare object keys to the backend.
+const R2_BASE = "https://pub-d5cad4963b964b9ba2720a29b5780d2b.r2.dev/";
+function urlToKey(url: string): string {
+  let result = url;
+  while (result.startsWith(R2_BASE)) result = result.slice(R2_BASE.length);
+  return result;
+}
+
+// Normalise whatever gallery comes back from the API into an array of strings.
+function toGalleryArray(val: unknown): string[] {
+  if (Array.isArray(val)) return (val as string[]).filter(Boolean);
+  if (typeof val === "string") return val.split(",").map((s) => s.trim()).filter(Boolean);
+  return [];
+}
 
 const LISTING_TYPES = ["rent", "sale", "commercial"] as const;
 const CATEGORIES = [
@@ -78,20 +93,31 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
   const { mutateAsync: updateProperty, isPending } = useUpdateProperty();
   const detail = property as PropertyDetail;
 
+  // Existing gallery URLs loaded from the property (full R2 URLs from the API).
+  const [existingGallery, setExistingGallery] = useState<string[]>(() =>
+    toGalleryArray(property.gallery)
+  );
+  // Newly staged (not yet uploaded) local files.
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const totalImages = existingGallery.length + galleryItems.length;
+
   function handleAddFiles(files: File[]) {
     const imageFiles = files.filter((f) => f.type.startsWith("image/"));
-    const remaining = MAX_GALLERY_IMAGES - galleryItems.length;
+    const remaining = MAX_GALLERY_IMAGES - totalImages;
     if (remaining <= 0) return;
     const newItems: GalleryItem[] = imageFiles.slice(0, remaining).map((f) => ({
       file: f,
       previewUrl: URL.createObjectURL(f),
     }));
     setGalleryItems((prev) => [...prev, ...newItems]);
+  }
+
+  function handleRemoveExisting(idx: number) {
+    setExistingGallery((prev) => prev.filter((_, i) => i !== idx));
   }
 
   function handleRemoveGalleryItem(idx: number) {
@@ -101,8 +127,8 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
     });
   }
 
-  const form = useForm<AddPropertyFormValues>({
-    resolver: zodResolver(addPropertySchema),
+  const form = useForm<EditPropertyFormValues>({
+    resolver: zodResolver(editPropertySchema),
     defaultValues: {
       agencyId: typeof detail.agency === "object" && detail.agency !== null
         ? (detail.agency as { id?: string }).id ?? ""
@@ -155,14 +181,18 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
   const { handleSubmit, control, formState } = form;
 
   const onSubmit = useCallback(
-    async (values: AddPropertyFormValues) => {
+    async (values: EditPropertyFormValues) => {
       function splitTrim(val: string) {
         return val.split(",").map((s) => s.trim()).filter(Boolean);
       }
       if (isSubmitting) return;
       setIsSubmitting(true);
       try {
-        let galleryUrls: string[];
+        // Start with the remaining existing images as bare R2 keys.
+        const existingKeys = existingGallery.map(urlToKey);
+
+        // Upload any newly staged files and collect their keys.
+        let newKeys: string[] = [];
         if (galleryItems.length > 0) {
           const { data: presigned } = await api.post<{ key: string; url: string }[]>(
             "/api/uploads/presign",
@@ -173,10 +203,10 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
               fetch(url, { method: "PUT", body: galleryItems[i].file, headers: { "Content-Type": galleryItems[i].file.type } }),
             ),
           );
-          galleryUrls = presigned.map((p) => p.key);
-        } else {
-          galleryUrls = values.gallery ? splitTrim(values.gallery) : [];
+          newKeys = presigned.map((p) => p.key);
         }
+
+        const galleryUrls = [...existingKeys, ...newKeys];
 
         await updateProperty({
           id: property.id,
@@ -204,7 +234,7 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
         setIsSubmitting(false);
       }
     },
-    [galleryItems, isSubmitting, updateProperty, property.id, setOpen],
+    [existingGallery, galleryItems, isSubmitting, updateProperty, property.id, setOpen],
   );
 
   function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -294,7 +324,8 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                         <FormItem>
                           <Label>Price <span className="text-destructive">*</span></Label>
                           <Input {...field} type="number" min={0} placeholder="500000"
-                            onChange={(e) => field.onChange(Number(e.target.value))} />
+                            value={field.value === 0 ? "" : field.value}
+                            onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))} />
                           <FormMessage />
                         </FormItem>
                       )}
@@ -370,7 +401,8 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                           <FormItem>
                             <Label>{label} <span className="text-destructive">*</span></Label>
                             <Input {...field} type="number" min={0} placeholder={placeholder}
-                              onChange={(e) => field.onChange(Number(e.target.value))} />
+                              value={field.value === 0 ? "" : field.value}
+                              onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))} />
                             <FormMessage />
                           </FormItem>
                         )}
@@ -433,7 +465,67 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                     )}
                   />
                   <FormItem>
-                    <Label>Gallery</Label>
+                    <Label>
+                      Gallery
+                      <span className="ml-1.5 text-xs text-muted-foreground font-normal">
+                        ({totalImages}/{MAX_GALLERY_IMAGES})
+                      </span>
+                    </Label>
+
+                    {/* ── Existing images ── */}
+                    {existingGallery.length > 0 && (
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {existingGallery.map((url, idx) => (
+                          <div key={url} className="relative group aspect-square">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={url}
+                              alt={`Image ${idx + 1}`}
+                              className="w-full h-full object-cover rounded-md border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveExisting(idx)}
+                              className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                            {/* "existing" badge */}
+                            <span className="absolute bottom-0.5 left-0.5 text-[9px] bg-black/50 text-white px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                              saved
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* ── Newly staged (not yet uploaded) ── */}
+                    {galleryItems.length > 0 && (
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {galleryItems.map((item, idx) => (
+                          <div key={idx} className="relative group aspect-square">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={item.previewUrl}
+                              alt={item.file.name}
+                              className="w-full h-full object-cover rounded-md border border-dashed border-brand-blue"
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleRemoveGalleryItem(idx); }}
+                              className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                            <span className="absolute bottom-0.5 left-0.5 text-[9px] bg-brand-blue/80 text-white px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                              new
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* ── Upload drop zone ── */}
                     <div
                       onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                       onDragLeave={(e) => {
@@ -446,19 +538,17 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                       }}
                       onClick={() => fileInputRef.current?.click()}
                       className={cn(
-                        "border-2 border-dashed rounded-lg py-5 px-4 cursor-pointer text-center transition-colors select-none",
+                        "border-2 border-dashed rounded-lg py-4 px-4 cursor-pointer text-center transition-colors select-none",
                         isDragging ? "border-brand-blue bg-brand-blue/5" : "border-border hover:border-brand-navy/50",
-                        galleryItems.length >= MAX_GALLERY_IMAGES && "pointer-events-none opacity-60",
+                        totalImages >= MAX_GALLERY_IMAGES && "pointer-events-none opacity-60",
                       )}
                     >
-                      <UploadCloud className="w-7 h-7 mx-auto mb-1.5 text-muted-foreground" />
+                      <UploadCloud className="w-6 h-6 mx-auto mb-1 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground">
                         Drop images or{" "}
                         <span className="text-brand-navy font-medium underline">browse</span>
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {galleryItems.length}/{MAX_GALLERY_IMAGES} images • JPG, PNG, WebP
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">JPG, PNG, WebP</p>
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -471,26 +561,6 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                         }}
                       />
                     </div>
-                    {galleryItems.length > 0 && (
-                      <div className="grid grid-cols-5 gap-1.5 mt-1">
-                        {galleryItems.map((item, idx) => (
-                          <div key={idx} className="relative group aspect-square">
-                            <img
-                              src={item.previewUrl}
-                              alt={item.file.name}
-                              className="w-full h-full object-cover rounded-md border"
-                            />
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleRemoveGalleryItem(idx); }}
-                              className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="w-2.5 h-2.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </FormItem>
                   <FormField
                     control={control}
@@ -729,7 +799,7 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                   type="submit"
                   className="bg-gradient-primary"
                   onClick={handleSubmit(onSubmit)}
-                  disabled={!formState.isValid || isPending || isSubmitting}
+                  disabled={isPending || isSubmitting}
                 >
                   Save Changes
                 </Button>

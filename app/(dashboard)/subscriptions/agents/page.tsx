@@ -32,9 +32,13 @@ import {
 import { useTranslation } from "@/hooks/use-translation";
 import {
   type ActiveSubAgent,
+  type SubscriptionRequest,
   useActiveAgentSubscriptions,
   useDowngradeAgent,
   useExtendAgent,
+  usePendingSubscriptions,
+  useConfirmSubscription,
+  useRejectSubscription,
 } from "@/lib/queries/subscriptions";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
@@ -121,6 +125,79 @@ function DowngradeDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ── Pending request row ───────────────────────────────────────────────────────
+
+const PM_LABELS: Record<string, string> = {
+  ORANGE_MONEY: "Orange Money",
+  MTN_MONEY:    "MTN Money",
+  AIRTEL_MONEY: "Airtel Money",
+  MPESA:        "M-Pesa",
+  CASH:         "Cash",
+};
+
+function PendingRequestRow({ req }: { req: SubscriptionRequest }) {
+  const confirm = useConfirmSubscription();
+  const reject  = useRejectSubscription();
+
+  const handleConfirm = async () => {
+    try {
+      await confirm.mutateAsync(req.id);
+      toast.success("Abonnement confirmé !");
+    } catch {
+      toast.error("Erreur lors de la confirmation.");
+    }
+  };
+
+  const handleReject = async () => {
+    const reason = window.prompt("Raison du refus (optionnel) :") ?? "";
+    try {
+      await reject.mutateAsync({ subId: req.id, reason });
+      toast.success("Demande refusée.");
+    } catch {
+      toast.error("Erreur lors du refus.");
+    }
+  };
+
+  return (
+    <tr className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+      <td className="px-4 py-3">
+        <p className="font-semibold text-sm text-foreground">{req.agent.name}</p>
+        <p className="text-xs text-muted-foreground">{req.agent.email}</p>
+      </td>
+      <td className="px-4 py-3">
+        <Badge className={`text-xs font-semibold inline-flex items-center gap-1 ${req.tier === "PRO" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"}`}>
+          <Star className="w-3 h-3" />
+          {req.tier === "PRO" ? "Pro" : "Agency"}
+        </Badge>
+      </td>
+      <td className="px-4 py-3">
+        <Badge className="text-xs font-semibold bg-amber-100 text-amber-700">En attente</Badge>
+      </td>
+      <td className="px-4 py-3 text-xs text-muted-foreground">{PM_LABELS[req.paymentMethod] ?? req.paymentMethod}</td>
+      <td className="px-4 py-3 text-sm font-semibold text-primary whitespace-nowrap">${req.amount}</td>
+      <td className="px-4 py-3 font-mono text-xs text-blue-700">{req.paymentReference}</td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleConfirm}
+            disabled={confirm.isPending}
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition disabled:opacity-50"
+          >
+            <Check className="w-3 h-3 inline mr-1" />Confirmer
+          </button>
+          <button
+            onClick={handleReject}
+            disabled={reject.isPending}
+            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-100 text-red-600 hover:bg-red-200 transition disabled:opacity-50"
+          >
+            <X className="w-3 h-3 inline mr-1" />Refuser
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }
 
@@ -233,6 +310,7 @@ export default function AgentsProPage() {
   const { data: agents = [], isLoading } = useActiveAgentSubscriptions(
     filter !== "all" ? filter : undefined,
   );
+  const { data: pendingRequests = [] } = usePendingSubscriptions();
   const [downgradeTarget, setDowngradeTarget] = useState<ActiveSubAgent | null>(null);
 
   const filterOptions: { key: FilterStatus; label: string }[] = [
@@ -249,6 +327,40 @@ export default function AgentsProPage() {
         <h1 className="text-2xl font-bold tracking-tight">{t.agentsTitle}</h1>
         <p className="text-sm text-muted-foreground mt-1">{t.agentsSubtitle}</p>
       </div>
+
+      {/* Pending subscription requests */}
+      {pendingRequests.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-base font-semibold">Demandes en attente</h2>
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+              {pendingRequests.length}
+            </span>
+          </div>
+          <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-amber-50 border-b border-amber-100">
+                  <tr>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-amber-700">Agent</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-amber-700">Plan</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-amber-700">Statut</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-amber-700">Paiement</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-amber-700">Montant</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-amber-700">Référence</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-amber-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingRequests.map((req) => (
+                    <PendingRequestRow key={req.id} req={req} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-2 flex-wrap">
