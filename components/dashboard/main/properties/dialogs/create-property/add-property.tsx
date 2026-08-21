@@ -293,13 +293,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
       amenities: "",
       description: "",
       reference: "",
-      zone: "",
-      brokerLicense: "",
-      agentLicense: "",
-      permitNumber: "",
       availableFrom: "",
-      averagePriceArea: undefined,
-      averageSizeArea: undefined,
       isShortTerm: false,
       isLongTerm: true,
       pricePerNight: undefined,
@@ -405,10 +399,6 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
           amenities:       splitTrim(values.amenities),
           description:     values.description     || undefined,
           reference:       values.reference       || undefined,
-          zone:            values.zone            || undefined,
-          brokerLicense:   values.brokerLicense   || undefined,
-          agentLicense:    values.agentLicense    || undefined,
-          permitNumber:    values.permitNumber    || undefined,
           availableFrom:   values.availableFrom   || undefined,
           shortTermNotes:  values.shortTermNotes  || undefined,
           landmark:        (values as any).landmark || undefined,
@@ -970,98 +960,11 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                     />
                     <FormField
                       control={control}
-                      name="zone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>{fp.labels.zone}</Label>
-                          <Select
-                            onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}
-                            value={field.value || "__none__"}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder={fp.placeholders.selectZone} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">{fp.placeholders.notSpecified}</SelectItem>
-                              {ZONE_OPTIONS.map((z) => (
-                                <SelectItem key={z} value={z}>{z}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={control}
-                      name="brokerLicense"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>{fp.labels.brokerLicense}</Label>
-                          <Input {...field} placeholder="BRN-123" />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={control}
-                      name="agentLicense"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>{fp.labels.agentLicense}</Label>
-                          <Input {...field} placeholder="ALN-456" />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={control}
-                      name="permitNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>{fp.labels.permitNumber}</Label>
-                          <Input {...field} placeholder="PM-789" />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={control}
                       name="availableFrom"
                       render={({ field }) => (
                         <FormItem>
                           <Label>{fp.labels.availableFrom}</Label>
                           <Input {...field} type="date" />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={control}
-                      name="averagePriceArea"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>{fp.labels.avgPriceArea}</Label>
-                          <Input
-                            type="number" min={0} placeholder="4200"
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={control}
-                      name="averageSizeArea"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>{fp.labels.avgSizeArea}</Label>
-                          <Input
-                            type="number" min={0} placeholder="85"
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-                          />
                           <FormMessage />
                         </FormItem>
                       )}

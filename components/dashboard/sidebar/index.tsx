@@ -4,6 +4,7 @@ import {
   Building2,
   ClipboardList,
   CreditCard,
+  Flag,
   Home,
   LayoutDashboard,
   Rocket,
@@ -43,6 +44,7 @@ export default function SidebarLayout() {
     { title: t.nav.agencies, url: "/agencies", icon: Building2 },
     { title: t.nav.properties, url: "/properties", icon: Home },
     { title: t.nav.boosts, url: "/boosts", icon: Rocket },
+    { title: t.nav.reports, url: "/reports", icon: Flag },
     {
       title: t.nav.subscriptions,
       url: "/subscriptions",

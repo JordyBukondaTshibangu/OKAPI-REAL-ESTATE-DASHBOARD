@@ -46,13 +46,7 @@ export const addPropertySchema = z.object({
     .optional()
     .nullable(),
   reference: z.string().trim().optional(),
-  zone: z.string().trim().optional(),
-  brokerLicense: z.string().trim().optional(),
-  agentLicense: z.string().trim().optional(),
-  permitNumber: z.string().trim().optional(),
   availableFrom: z.string().trim().optional(),
-  averagePriceArea: z.number().min(0).optional(),
-  averageSizeArea: z.number().min(0).optional(),
   // Rental duration type
   isShortTerm: z.boolean().optional(),
   isLongTerm: z.boolean().optional(),

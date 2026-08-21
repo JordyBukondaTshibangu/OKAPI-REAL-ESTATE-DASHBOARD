@@ -159,13 +159,7 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
       isNew: property.isNew ?? false,
       description: detail.description ?? "",
       reference: detail.reference ?? "",
-      zone: detail.zone ?? "",
-      brokerLicense: detail.brokerLicense ?? "",
-      agentLicense: detail.agentLicense ?? "",
-      permitNumber: detail.permitNumber ?? "",
       availableFrom: detail.availableFrom ?? "",
-      averagePriceArea: detail.averagePriceArea ?? undefined,
-      averageSizeArea: detail.averageSizeArea ?? undefined,
       isShortTerm: property.isShortTerm ?? false,
       isLongTerm: property.isLongTerm ?? true,
       pricePerNight: property.pricePerNight ?? undefined,
@@ -211,16 +205,13 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
         await updateProperty({
           id: property.id,
           ...values,
+          agencyId: values.agencyId || null,
           period: (values.period as "monthly" | "yearly" | undefined) || undefined,
           transaction: (values.transaction as "rent" | "sale" | undefined) || undefined,
           gallery: galleryUrls,
           amenities: splitTrim(values.amenities),
           description: values.description || undefined,
           reference: values.reference || undefined,
-          zone: values.zone || undefined,
-          brokerLicense: values.brokerLicense || undefined,
-          agentLicense: values.agentLicense || undefined,
-          permitNumber: values.permitNumber || undefined,
           availableFrom: values.availableFrom || undefined,
           shortTermNotes: values.shortTermNotes || undefined,
           landmark: (values as any).landmark || undefined,
@@ -645,63 +636,24 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                   {/* Legal */}
                   <SectionTitle>Legal & Market</SectionTitle>
                   <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { name: "reference" as const, label: "Reference", placeholder: "REF-001" },
-                      { name: "zone" as const, label: "Zone", placeholder: "Zone A" },
-                      { name: "brokerLicense" as const, label: "Broker license", placeholder: "BRN-123" },
-                      { name: "agentLicense" as const, label: "Agent license", placeholder: "ALN-456" },
-                      { name: "permitNumber" as const, label: "Permit number", placeholder: "PM-789" },
-                    ].map(({ name, label, placeholder }) => (
-                      <FormField
-                        key={name}
-                        control={control}
-                        name={name}
-                        render={({ field }) => (
-                          <FormItem>
-                            <Label>{label}</Label>
-                            <Input {...field} placeholder={placeholder} />
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    ))}
+                    <FormField
+                      control={control}
+                      name="reference"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>Reference</Label>
+                          <Input {...field} placeholder="REF-001" />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={control}
                       name="availableFrom"
                       render={({ field }) => (
                         <FormItem>
-                          <Label>Available from</Label>
+                          <Label>Available from <span className="text-muted-foreground font-normal">(optional)</span></Label>
                           <Input {...field} type="date" />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={control}
-                      name="averagePriceArea"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>Avg price / m²</Label>
-                          <Input
-                            type="number" min={0} placeholder="4200"
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-                          />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={control}
-                      name="averageSizeArea"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>Avg size / m²</Label>
-                          <Input
-                            type="number" min={0} placeholder="85"
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-                          />
                           <FormMessage />
                         </FormItem>
                       )}

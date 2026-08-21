@@ -8,6 +8,7 @@ export const translations = {
       agencies: "Agencies",
       properties: "Properties",
       boosts: "Boosts",
+      reports: "Reports",
       subscriptions: "Subscriptions",
       subscriptionsAgents: "Agents Pro",
       subscriptionsAgences: "Agencies",
@@ -233,6 +234,48 @@ export const translations = {
       revenueProAgents: "Active Pro agents",
       revenueAgencies: "Active agencies",
       revenueBoosts: "Active boosts",
+    },
+    reports: {
+      pageTitle: "Reports",
+      pageSubtitle: "Listings reported by users — sorted by number of reports.",
+      loading: "Loading reports…",
+      emptyTitle: "No pending reports",
+      emptyDesc: "All reported listings have been reviewed.",
+      countSingular: "listing to review",
+      countPlural: "listings to review",
+      agentPrefix: "Agent:",
+      autoHiddenBadge: "Auto-hidden",
+      pendingCount: "pending report",
+      pendingCountPlural: "pending reports",
+      // Reason labels
+      reasonFakeListing: "Fake listing",
+      reasonWrongPrice: "Incorrect price",
+      reasonStolenPhotos: "Stolen photos",
+      reasonAlreadyRented: "Already rented/sold",
+      reasonScam: "Scam",
+      reasonInappropriate: "Inappropriate content",
+      reasonOther: "Other",
+      // Action buttons
+      actionDismiss: "No issue",
+      actionWarnAgent: "Warn agent",
+      actionDeleteListing: "Delete listing",
+      // Confirm dialog — dismiss
+      dismissTitle: "No issue",
+      dismissDesc: "Reports will be archived and the listing will be restored.",
+      dismissBtn: "Confirm — restore listing",
+      // Confirm dialog — warn_agent
+      warnTitle: "Warn the agent",
+      warnDesc: "The listing will be restored but the agent is flagged as warned.",
+      warnBtn: "Confirm — warn agent",
+      // Confirm dialog — delete_listing
+      deleteTitle: "Permanently delete",
+      deleteDesc: "The listing will be permanently hidden (REJECTED status). This action is irreversible.",
+      deleteBtn: "Confirm — delete listing",
+      // Dialog shared
+      confirmCancel: "Cancel",
+      // Toasts
+      toastSuccess: "Action applied successfully.",
+      toastError: "An error occurred. Please try again.",
     },
     auditLogs: {
       title: "Audit Logs",
@@ -579,6 +622,7 @@ export const translations = {
       agencies: "Agences",
       properties: "Propriétés",
       boosts: "Boosts",
+      reports: "Signalements",
       subscriptions: "Abonnements",
       subscriptionsAgents: "Agents Pro",
       subscriptionsAgences: "Agences",
@@ -804,6 +848,48 @@ export const translations = {
       revenueProAgents: "Agents Pro actifs",
       revenueAgencies: "Agences actives",
       revenueBoosts: "Boosts actifs",
+    },
+    reports: {
+      pageTitle: "Signalements",
+      pageSubtitle: "Annonces signalées par les utilisateurs — classées par nombre de signalements.",
+      loading: "Chargement des signalements…",
+      emptyTitle: "Aucun signalement en attente",
+      emptyDesc: "Toutes les annonces signalées ont été traitées.",
+      countSingular: "annonce à examiner",
+      countPlural: "annonces à examiner",
+      agentPrefix: "Agent :",
+      autoHiddenBadge: "Masquée auto",
+      pendingCount: "signalement en attente",
+      pendingCountPlural: "signalements en attente",
+      // Reason labels
+      reasonFakeListing: "Annonce fausse",
+      reasonWrongPrice: "Prix incorrect",
+      reasonStolenPhotos: "Photos volées",
+      reasonAlreadyRented: "Déjà loué/vendu",
+      reasonScam: "Arnaque",
+      reasonInappropriate: "Contenu inapproprié",
+      reasonOther: "Autre",
+      // Action buttons
+      actionDismiss: "Aucun problème",
+      actionWarnAgent: "Avertir l'agent",
+      actionDeleteListing: "Supprimer l'annonce",
+      // Confirm dialog — dismiss
+      dismissTitle: "Aucun problème",
+      dismissDesc: "Les signalements seront archivés et l'annonce sera remise en ligne.",
+      dismissBtn: "Confirmer — remettre en ligne",
+      // Confirm dialog — warn_agent
+      warnTitle: "Avertir l'agent",
+      warnDesc: "L'annonce sera remise en ligne mais l'agent est marqué comme averti.",
+      warnBtn: "Confirmer — avertir l'agent",
+      // Confirm dialog — delete_listing
+      deleteTitle: "Supprimer définitivement",
+      deleteDesc: "L'annonce sera masquée de façon permanente (statut REJECTED). Cette action est irréversible.",
+      deleteBtn: "Confirmer — supprimer l'annonce",
+      // Dialog shared
+      confirmCancel: "Annuler",
+      // Toasts
+      toastSuccess: "Action appliquée avec succès.",
+      toastError: "Une erreur est survenue. Veuillez réessayer.",
     },
     auditLogs: {
       title: "Journaux d'audit",
