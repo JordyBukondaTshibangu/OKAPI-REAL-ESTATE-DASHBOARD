@@ -42,6 +42,10 @@
     "components/ui/carousel.tsx",
     "components/ui/chart.tsx",
     "components/ui/charts",
-    "components/ui/resizable.tsx"
+    "components/ui/resizable.tsx",
+    "**/* 2.ts",
+    "**/* 2.tsx",
+    "**/* 3.ts",
+    "**/* 3.tsx"
   ]
 }
