@@ -6,6 +6,7 @@ import { useAgents, usePendingAgentsCount } from "@/lib/queries/agents";
 import { useAgencies } from "@/lib/queries/agencies";
 import { useProperties } from "@/lib/queries/properties";
 import { useRevenueSummary } from "@/lib/queries/subscriptions";
+import { useUsersCount } from "@/lib/queries/users";
 import { useTranslation } from "@/hooks/use-translation";
 
 function EntitiesCount() {
@@ -15,11 +16,13 @@ function EntitiesCount() {
   const { data: propertiesData } = useProperties({ page: 1, pageSize: 1 });
   const { data: pendingCount } = usePendingAgentsCount();
   const { data: revenue } = useRevenueSummary();
+  const { data: usersCount } = useUsersCount();
 
   const agentTotal    = typeof agentsData?.totalCount     === "number" ? agentsData.totalCount     : null;
   const agencyTotal   = typeof agenciesData?.totalCount   === "number" ? agenciesData.totalCount   : null;
   const propertyTotal = typeof propertiesData?.totalCount === "number" ? propertiesData.totalCount : null;
   const pending       = typeof pendingCount === "number" ? pendingCount : null;
+  const userTotal     = typeof usersCount === "number" ? usersCount : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -32,7 +35,26 @@ function EntitiesCount() {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {/* Users */}
+        <div className="stat-card border-t-2 border-t-teal-500 h-full">
+          <div className="p-5 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-muted-foreground">Utilisateurs</span>
+              <div className="bg-teal-50 p-2 rounded-lg">
+                <Users className="w-4 h-4 text-teal-500" />
+              </div>
+            </div>
+            <div>
+              <span className="text-3xl font-bold text-foreground leading-none">
+                {userTotal ?? "–"}
+              </span>
+              <span className="text-xs text-muted-foreground ml-1.5">{t.dashboard.total}</span>
+            </div>
+            <span className="text-[11px] text-muted-foreground/60">comptes enregistrés</span>
+          </div>
+        </div>
+
         {/* Agents */}
         <Link href="/agents" className="block group">
           <div className="stat-card border-t-2 border-t-brand-blue h-full transition-shadow hover:shadow-md cursor-pointer">
