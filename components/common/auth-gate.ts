@@ -24,7 +24,6 @@ export default function AuthGate({ refreshToken }: { refreshToken?: string }) {
         });
 
         if (response?.status !== 200) {
-          console.log("INVALID REFRESH TOKEN REDIRECT TO ONBOARDING");
           dispatch(clearAuth());
           router.replace("/");
           return;
