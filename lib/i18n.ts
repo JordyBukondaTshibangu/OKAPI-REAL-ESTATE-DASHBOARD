@@ -15,6 +15,7 @@ export const translations = {
       subscriptionsHistorique: "Payment History",
       auditLogs: "Audit Logs",
       duplicates: "Duplicates",
+      propertiesList: "List",
     },
     header: {
       adminDashboard: "Admin Dashboard",
@@ -706,6 +707,7 @@ export const translations = {
       subscriptionsHistorique: "Historique",
       auditLogs: "Journaux d'audit",
       duplicates: "Doublons",
+      propertiesList: "Liste",
     },
     header: {
       adminDashboard: "Tableau de bord Admin",

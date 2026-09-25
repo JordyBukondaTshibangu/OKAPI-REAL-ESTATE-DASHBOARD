@@ -47,6 +47,7 @@ export default function SidebarLayout() {
       url: "/properties",
       icon: Home,
       items: [
+        { title: t.nav.propertiesList, url: "/properties" },
         { title: t.nav.duplicates, url: "/properties/duplicates" },
       ],
     },
