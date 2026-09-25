@@ -25,66 +25,82 @@ function resolveAgentName(agent: unknown): string {
   return "–";
 }
 
+type PropertyColLabels = {
+  colTitle: string; colType: string; colCategory: string; colDuree: string;
+  colPrice: string; colCity: string; colAgent: string;
+  actionView: string; actionDelete: string;
+  longTerm: string; shortTerm: string;
+};
+
 export function getResourcesColumns(
   currentPage: number,
   toggleDialog?: (key: PropertyDialogType, value: boolean) => void,
   setSelectedResource?: (property: Property) => void,
   searchParams?: { search?: string; searchName?: string },
+  labels?: PropertyColLabels,
 ): ColumnDef<Property>[] {
   const nameQuery = searchParams?.searchName ?? "";
   const genericQuery = searchParams?.search ?? "";
+  const L = labels ?? {
+    colTitle: "Title", colType: "Type", colCategory: "Category", colDuree: "Duration",
+    colPrice: "Price", colCity: "City", colAgent: "Agent",
+    actionView: "View", actionDelete: "Delete", longTerm: "Long-term", shortTerm: "Short-term",
+  };
 
   return [
     {
       accessorKey: "title",
+      size: 220,
       enableSorting: true,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={L.colTitle} />,
       cell: ({ row }) => (
-        <span className="font-medium max-w-48 truncate block">
+        <span className="font-medium truncate block max-w-full" title={safeString(row.original.title)}>
           <HighlightText text={safeString(row.original.title)} query={nameQuery || genericQuery} />
         </span>
       ),
     },
     {
       accessorKey: "listingType",
+      size: 90,
       enableSorting: true,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={L.colType} />,
       cell: ({ row }) => (
-        <Badge variant="outline" className="capitalize text-xs w-20">
+        <Badge variant="outline" className="capitalize text-xs whitespace-nowrap">
           {safeString(row.original.listingType)}
         </Badge>
       ),
     },
     {
       accessorKey: "category",
+      size: 110,
       enableSorting: true,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Category" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={L.colCategory} />,
       cell: ({ row }) => (
         <span className="capitalize">{safeString(row.original.category)}</span>
       ),
     },
     {
       id: "rentalType",
+      size: 120,
       enableSorting: true,
-      // Sort key: 0 = long only, 1 = both, 2 = short only
       accessorFn: (row) => {
         if (row.isShortTerm && !(row.isLongTerm ?? true)) return 2;
         if (row.isShortTerm) return 1;
         return 0;
       },
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Durée" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={L.colDuree} />,
       cell: ({ row }) => {
         const { isShortTerm, isLongTerm } = row.original;
         return (
           <div className="flex flex-wrap gap-1">
             {(isLongTerm ?? true) && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 font-medium">
-                Long terme
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 font-medium whitespace-nowrap">
+                {L.longTerm}
               </Badge>
             )}
             {isShortTerm && (
-              <Badge className="text-[10px] px-1.5 py-0 h-5 font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border-0">
-                Court terme
+              <Badge className="text-[10px] px-1.5 py-0 h-5 font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border-0 whitespace-nowrap">
+                {L.shortTerm}
               </Badge>
             )}
           </div>
@@ -93,39 +109,43 @@ export function getResourcesColumns(
     },
     {
       accessorKey: "price",
+      size: 120,
       enableSorting: true,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Price" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title={L.colPrice} />,
       cell: ({ row }) => {
         const price = row.original.price;
         const currency = safeString(row.original.currency);
         const displayPrice = typeof price === "number" ? price.toLocaleString() : "–";
-        return <span>{currency} {displayPrice}</span>;
+        return <span className="whitespace-nowrap tabular-nums">{currency} {displayPrice}</span>;
       },
     },
     {
       accessorKey: "city",
+      size: 100,
       enableSorting: false,
-      header: "City",
+      header: L.colCity,
       cell: ({ row }) => <span>{safeString(row.original.city)}</span>,
     },
     {
       accessorKey: "agent",
+      size: 170,
       enableSorting: false,
-      header: "Agent",
-      cell: ({ row }) => <span>{resolveAgentName(row.original.agent)}</span>,
+      header: L.colAgent,
+      cell: ({ row }) => <span className="truncate block max-w-full">{resolveAgentName(row.original.agent)}</span>,
     },
     {
       id: "actions",
+      size: 140,
       enableSorting: false,
       cell: ({ row }) => (
-        <div className="w-2">
-          <PropertyRowActions
-            property={row.original}
-            currentPage={currentPage}
-            toggleDialog={toggleDialog}
-            setSelectedProperty={setSelectedResource}
-          />
-        </div>
+        <PropertyRowActions
+          property={row.original}
+          currentPage={currentPage}
+          toggleDialog={toggleDialog}
+          setSelectedProperty={setSelectedResource}
+          labelView={L.actionView}
+          labelDelete={L.actionDelete}
+        />
       ),
     },
   ];

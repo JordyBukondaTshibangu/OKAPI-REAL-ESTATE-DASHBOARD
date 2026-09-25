@@ -1,16 +1,10 @@
 "use client";
 
-import { MoreVertical, PenLine, Trash2 } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import { Property } from "@/types";
 import { PropertyDialogType } from "@/components/dashboard/main/_common/data-table/molecules/columns/property-column";
@@ -20,6 +14,8 @@ type PropertyRowActionsProps = {
   currentPage: number;
   toggleDialog?: (key: PropertyDialogType, value: boolean) => void;
   setSelectedProperty?: (property: Property) => void;
+  labelView?: string;
+  labelDelete?: string;
 };
 
 export function PropertyRowActions({
@@ -27,6 +23,8 @@ export function PropertyRowActions({
   currentPage,
   toggleDialog,
   setSelectedProperty,
+  labelView = "View",
+  labelDelete = "Delete",
 }: PropertyRowActionsProps) {
   const router = useRouter();
 
@@ -40,26 +38,15 @@ export function PropertyRowActions({
   }, [property, setSelectedProperty, toggleDialog]);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button size="icon" variant="ghost" className="h-8 w-8 p-0" aria-label="More options">
-          <MoreVertical className="size-4" />
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent className="w-40 mr-10" align="start">
-        <DropdownMenuItem onClick={handleView} className="cursor-pointer">
-          <PenLine className="size-4" />
-          View details
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={handleDelete}
-          className="text-destructive hover:text-destructive cursor-pointer"
-        >
-          <Trash2 className="size-4 text-destructive" />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-2">
+      <Button variant="ghost" size="sm" className="gap-1.5 h-8" onClick={handleView}>
+        <Eye className="size-3.5" />
+        {labelView}
+      </Button>
+      <Button variant="ghost" size="sm" className="gap-1.5 h-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDelete}>
+        <Trash2 className="size-3.5" />
+        {labelDelete}
+      </Button>
+    </div>
   );
 }

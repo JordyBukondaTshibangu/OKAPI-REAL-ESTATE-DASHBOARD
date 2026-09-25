@@ -82,6 +82,34 @@ export function usePendingProperties() {
   });
 }
 
+export interface DuplicateGroup {
+  key: string;
+  listings: Array<{
+    id: string;
+    title: string;
+    status: string;
+    price: number;
+    currency: string;
+    suburb: string;
+    category: string;
+    bedrooms: number | null;
+    gallery: string[];
+    createdAt: string;
+    agent: { id: string; name: string; email: string } | null;
+  }>;
+}
+
+export function useDuplicateProperties() {
+  return useQuery<DuplicateGroup[]>({
+    queryKey: [PROPERTIES_KEY, "duplicates"],
+    queryFn: async () => {
+      const { data } = await api.get("/api/properties/admin/duplicates");
+      return Array.isArray(data) ? data : [];
+    },
+    refetchInterval: 60_000,
+  });
+}
+
 export function useApproveProperty() {
   const qc = useQueryClient();
   return useMutation({

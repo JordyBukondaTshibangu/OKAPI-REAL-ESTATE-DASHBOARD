@@ -6,6 +6,7 @@ import { DataTable } from "./data-table";
 import { getResourcesColumns, PropertyDialogType } from "./data-table/molecules/columns/property-column";
 import { TablePagination } from "./table-pagination";
 import { Property } from "@/types";
+import { useTranslation } from "@/hooks/use-translation";
 
 export type { PropertyDialogType };
 
@@ -41,10 +42,11 @@ function PropertiesTable({
   setSelectedAgency,
 }: PropertiesTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
+  const t = useTranslation();
 
   const columns = useMemo(
-    () => getResourcesColumns(currentPage, toggleDialog, setSelectedAgency, searchParams),
-    [currentPage, toggleDialog, setSelectedAgency, searchParams],
+    () => getResourcesColumns(currentPage, toggleDialog, setSelectedAgency, searchParams, t.properties),
+    [currentPage, toggleDialog, setSelectedAgency, searchParams, t],
   );
 
   const handleSortingChange = (next: SortingState) => {

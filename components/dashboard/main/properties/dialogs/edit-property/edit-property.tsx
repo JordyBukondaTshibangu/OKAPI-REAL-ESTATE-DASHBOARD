@@ -60,22 +60,7 @@ const CATEGORIES = [
   "apartment", "villa", "townhouse", "studio", "duplex",
   "penthouse", "land", "office", "warehouse", "retail",
 ] as const;
-const ICON_TYPES = ["building", "home", "land", "office", "store", "warehouse"] as const;
 const PERIODS = ["monthly", "yearly"] as const;
-const TRANSACTIONS = ["rent", "sale"] as const;
-
-const IMAGE_GRADIENT_OPTIONS = [
-  { label: "Blue Sky", value: "from-blue-400 to-blue-700" },
-  { label: "Navy", value: "from-slate-700 to-slate-900" },
-  { label: "Amber", value: "from-amber-400 to-orange-600" },
-  { label: "Purple", value: "from-purple-400 to-purple-700" },
-  { label: "Emerald", value: "from-emerald-400 to-emerald-700" },
-  { label: "Rose", value: "from-rose-400 to-rose-700" },
-  { label: "Indigo", value: "from-indigo-400 to-indigo-700" },
-  { label: "Teal", value: "from-teal-400 to-teal-600" },
-  { label: "Crimson", value: "from-red-400 to-red-700" },
-  { label: "Charcoal", value: "from-gray-500 to-gray-800" },
-] as const;
 
 function joinArr(val: unknown): string {
   if (Array.isArray(val)) return (val as string[]).join(", ");
@@ -280,11 +265,10 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                       </FormItem>
                     )}
                   />
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {[
                       { name: "listingType" as const, label: "Listing type", options: LISTING_TYPES },
                       { name: "category" as const, label: "Category", options: CATEGORIES },
-                      { name: "iconType" as const, label: "Icon", options: ICON_TYPES },
                     ].map(({ name, label, options }) => (
                       <FormField
                         key={name}
@@ -425,36 +409,6 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
 
                   {/* Media */}
                   <SectionTitle>Media & Features</SectionTitle>
-                  <FormField
-                    control={control}
-                    name="imageGradient"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Label>Image gradient <span className="text-destructive">*</span></Label>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className="w-full">
-                            <div className="flex items-center gap-2 min-w-0">
-                              {field.value && (
-                                <span className={cn("inline-block shrink-0 w-12 h-4 rounded-sm bg-linear-to-r", field.value)} />
-                              )}
-                              <SelectValue placeholder="Select a gradient" />
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {IMAGE_GRADIENT_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                <div className="flex items-center gap-2">
-                                  <span className={cn("inline-block w-12 h-4 rounded-sm bg-linear-to-r shrink-0", opt.value)} />
-                                  {opt.label}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                   <FormItem>
                     <Label>
                       Gallery
@@ -565,48 +519,24 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                       </FormItem>
                     )}
                   />
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField
-                      control={control}
-                      name="transaction"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label>Transaction</Label>
-                          <Select
-                            onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)}
-                            value={field.value || "__none__"}
-                          >
-                            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">None</SelectItem>
-                              {TRANSACTIONS.map((t) => (
-                                <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex items-end gap-4 pb-1">
-                      {([
-                        { name: "verified" as const, label: "Verified" },
-                        { name: "premium" as const, label: "Premium" },
-                        { name: "isNew" as const, label: "New" },
-                      ]).map(({ name, label }) => (
-                        <FormField
-                          key={name}
-                          control={control}
-                          name={name}
-                          render={({ field }) => (
-                            <FormItem className="flex items-center gap-2 space-y-0">
-                              <Checkbox id={name} checked={field.value as boolean} onCheckedChange={field.onChange} />
-                              <Label htmlFor={name} className="text-sm font-normal cursor-pointer">{label}</Label>
-                            </FormItem>
-                          )}
-                        />
-                      ))}
-                    </div>
+                  <div className="flex items-center gap-6">
+                    {([
+                      { name: "verified" as const, label: "Verified" },
+                      { name: "premium" as const, label: "Premium" },
+                      { name: "isNew" as const, label: "New" },
+                    ]).map(({ name, label }) => (
+                      <FormField
+                        key={name}
+                        control={control}
+                        name={name}
+                        render={({ field }) => (
+                          <FormItem className="flex items-center gap-2 space-y-0">
+                            <Checkbox id={name} checked={field.value as boolean} onCheckedChange={field.onChange} />
+                            <Label htmlFor={name} className="text-sm font-normal cursor-pointer">{label}</Label>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
                   </div>
                   <FormField
                     control={control}

@@ -23,6 +23,15 @@ const chartConfig = {
 type Props = {
   performance: PropertyPerformance;
   listedDaysAgo?: number | null;
+  labels?: {
+    title: string;
+    since: string;
+    viewed: string;
+    shared: string;
+    saved: string;
+    whatsApp: string;
+    disclaimer: string;
+  };
 };
 
 type SeriesPoint = {
@@ -68,17 +77,28 @@ function buildSeries(
   });
 }
 
-function PerformanceChart({ performance, listedDaysAgo }: Props) {
+const DEFAULT_LABELS = {
+  title: "Performance",
+  since: "since listing",
+  viewed: "Viewed",
+  shared: "Shared",
+  saved: "Saved",
+  whatsApp: "WhatsApp",
+  disclaimer: "Estimated trend — totals are distributed evenly from the listing date to today.",
+};
+
+function PerformanceChart({ performance, listedDaysAgo, labels }: Props) {
+  const L = labels ?? DEFAULT_LABELS;
   const series = useMemo(
     () => buildSeries(performance, listedDaysAgo ?? 0),
     [performance, listedDaysAgo],
   );
 
   const stats = [
-    { icon: Eye, label: "Viewed", value: performance.viewed, color: "text-brand-blue", bg: "bg-brand-blue/10" },
-    { icon: Share2, label: "Shared", value: performance.shared, color: "text-brand-gold", bg: "bg-brand-gold/10" },
-    { icon: Heart, label: "Saved", value: performance.saved, color: "text-rose-500", bg: "bg-rose-500/10" },
-    { icon: MessageCircle, label: "WhatsApp", value: performance.whatsappClicks ?? 0, color: "text-green-600", bg: "bg-green-500/10" },
+    { icon: Eye, label: L.viewed, value: performance.viewed, color: "text-brand-blue", bg: "bg-brand-blue/10" },
+    { icon: Share2, label: L.shared, value: performance.shared, color: "text-brand-gold", bg: "bg-brand-gold/10" },
+    { icon: Heart, label: L.saved, value: performance.saved, color: "text-rose-500", bg: "bg-rose-500/10" },
+    { icon: MessageCircle, label: L.whatsApp, value: performance.whatsappClicks ?? 0, color: "text-green-600", bg: "bg-green-500/10" },
   ];
 
   return (
@@ -86,9 +106,9 @@ function PerformanceChart({ performance, listedDaysAgo }: Props) {
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <Activity className="size-4 text-brand-blue" />
-          Performance
+          {L.title}
           <span className="text-xs font-normal text-muted-foreground">
-            since listing
+            {L.since}
           </span>
         </CardTitle>
       </CardHeader>
@@ -190,8 +210,7 @@ function PerformanceChart({ performance, listedDaysAgo }: Props) {
         </ChartContainer>
 
         <p className="text-[11px] text-muted-foreground -mt-2">
-          Estimated trend — totals are distributed evenly from the listing date
-          to today.
+          {L.disclaimer}
         </p>
       </CardContent>
     </Card>

@@ -6,6 +6,7 @@ import {
   Building2,
   CircleDot,
   Clock,
+  Home,
   ShieldOff,
   TrendingUp,
 } from "lucide-react";
@@ -305,6 +306,37 @@ export function getAgentsColumns(
           </span>
         </div>
       ),
+    },
+
+    // ── ANNONCES ─────────────────────────────────────────────────────────────
+    {
+      id: "annonces",
+      enableSorting: false,
+      header: "Annonces",
+      cell: ({ row }) => {
+        const agent = row.original;
+        const sale = agent.forSaleCount ?? 0;
+        const rent = agent.forRentCount ?? 0;
+        const total = sale + rent;
+
+        if (total === 0) {
+          return <span className="text-muted-foreground text-xs">–</span>;
+        }
+
+        return (
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-1.5">
+              <Home className="size-3.5 text-muted-foreground shrink-0" />
+              <span className="text-sm font-semibold tabular-nums text-foreground">{total}</span>
+            </div>
+            {sale > 0 && rent > 0 && (
+              <span className="text-[11px] text-muted-foreground tabular-nums">
+                {sale} vente · {rent} loc.
+              </span>
+            )}
+          </div>
+        );
+      },
     },
 
     // ── ACTIONS ───────────────────────────────────────────────────────────────

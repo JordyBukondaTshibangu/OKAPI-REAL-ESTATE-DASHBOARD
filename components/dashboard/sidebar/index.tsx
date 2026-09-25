@@ -42,7 +42,14 @@ export default function SidebarLayout() {
     { title: t.nav.dashboard, url: "/dashboard", icon: LayoutDashboard },
     { title: t.nav.agents, url: "/agents", icon: Users },
     { title: t.nav.agencies, url: "/agencies", icon: Building2 },
-    { title: t.nav.properties, url: "/properties", icon: Home },
+    {
+      title: t.nav.properties,
+      url: "/properties",
+      icon: Home,
+      items: [
+        { title: t.nav.duplicates, url: "/properties/duplicates" },
+      ],
+    },
     { title: t.nav.boosts, url: "/boosts", icon: Rocket },
     { title: t.nav.reports, url: "/reports", icon: Flag },
     {

@@ -12,7 +12,6 @@ import {
   Landmark,
   Loader2,
   MapPin,
-  MoreVertical,
   Package,
   Pencil,
   Ruler,
@@ -32,14 +31,9 @@ import { Loading } from "@/components/common/loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import { useApproveProperty, useProperty, useRejectProperty } from "@/lib/queries/properties";
+import { useApproveProperty, useProperty, useRejectProperty, useUpdateProperty } from "@/lib/queries/properties";
+import { useTranslation } from "@/hooks/use-translation";
 import DeletePropertyDialog from "../dialogs/delete-agent";
 import EditProperty from "../dialogs/edit-property/edit-property";
 import PerformanceChart from "./performance-chart";
@@ -64,16 +58,11 @@ const ICON_MAP: Record<string, typeof Home> = {
   warehouse: Warehouse,
 };
 
-const TYPE_STYLES: Record<string, { bg: string; text: string; label: string }> =
-  {
-    sale: { bg: "bg-brand-blue", text: "text-white", label: "For Sale" },
-    rent: { bg: "bg-brand-gold", text: "text-brand-navy", label: "For Rent" },
-    commercial: {
-      bg: "bg-purple-600",
-      text: "text-white",
-      label: "Commercial",
-    },
-  };
+const TYPE_STYLES: Record<string, { bg: string; text: string }> = {
+  sale: { bg: "bg-brand-blue", text: "text-white" },
+  rent: { bg: "bg-brand-gold", text: "text-brand-navy" },
+  commercial: { bg: "bg-purple-600", text: "text-white" },
+};
 
 function resolveAgentName(agent: unknown): string {
   if (!agent) return "–";
@@ -101,13 +90,23 @@ function PropertyDetail({ propertyId }: Props) {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
+  const t = useTranslation();
+  const d = t.properties.detail;
+
   const { data: property, isLoading } = useProperty(propertyId);
   const approve = useApproveProperty();
   const reject = useRejectProperty();
+  const updateProperty = useUpdateProperty();
+
+  const handleRemovePhoto = (url: string) => {
+    if (!property) return;
+    const newGallery = (property.gallery ?? []).filter((u) => u !== url);
+    updateProperty.mutate({ id: propertyId, gallery: newGallery });
+  };
 
   const isPending = (property as any)?.status === "PENDING";
 
-  if (isLoading) return <Loading label="Loading property" />;
+  if (isLoading) return <Loading label={d.loadingLabel} />;
   if (!property) return null;
 
   const typeStyle = TYPE_STYLES[property.listingType] ?? TYPE_STYLES.sale;
@@ -153,29 +152,19 @@ function PropertyDetail({ propertyId }: Props) {
           className="gap-2 text-muted-foreground hover:text-foreground -ml-2"
         >
           <ArrowLeft className="size-4" />
-          {fromPending ? "Retour aux demandes" : "Back to Properties"}
+          {fromPending ? d.backToRequests : d.backToProperties}
         </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="outline" className="h-8 w-8">
-              <MoreVertical className="size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem className="cursor-pointer" onClick={() => setEditOpen(true)}>
-              <Pencil className="size-4 mr-2" />
-              Edit property
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive hover:text-destructive cursor-pointer"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="size-4 mr-2 text-destructive" />
-              Delete property
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => setEditOpen(true)}>
+            <Pencil className="size-3.5" />
+            {d.editBtn}
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 h-8 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50" onClick={() => setDeleteOpen(true)}>
+            <Trash2 className="size-3.5" />
+            {d.deleteBtn}
+          </Button>
+        </div>
       </div>
 
       {/* ── Pending review banner ──────────────────────────────── */}
@@ -187,10 +176,10 @@ function PropertyDetail({ propertyId }: Props) {
             </div>
             <div>
               <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                En attente de validation
+                {d.pendingBannerTitle}
               </p>
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                Vérifiez tous les détails ci-dessous avant d'approuver ou de rejeter.
+                {d.pendingBannerDesc}
               </p>
             </div>
           </div>
@@ -210,7 +199,7 @@ function PropertyDetail({ propertyId }: Props) {
               ) : (
                 <BadgeCheck className="w-3.5 h-3.5" />
               )}
-              Approuver
+              {d.approveBtn}
             </Button>
             <Button
               size="sm"
@@ -220,7 +209,7 @@ function PropertyDetail({ propertyId }: Props) {
               disabled={approve.isPending || reject.isPending}
             >
               <XCircle className="w-3.5 h-3.5" />
-              Rejeter
+              {d.rejectBtn}
             </Button>
           </div>
         </div>
@@ -241,7 +230,7 @@ function PropertyDetail({ propertyId }: Props) {
             <span
               className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${typeStyle.bg} ${typeStyle.text}`}
             >
-              {typeStyle.label}
+              {property.listingType === "rent" ? d.typeForRent : property.listingType === "commercial" ? d.typeCommercial : d.typeForSale}
             </span>
             <span className="text-xs font-semibold px-3 py-1 rounded-full bg-white/10 text-white/80 border border-white/10 capitalize">
               {property.category}
@@ -249,18 +238,18 @@ function PropertyDetail({ propertyId }: Props) {
             {property.verified && (
               <span className="flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/20">
                 <BadgeCheck className="size-3" />
-                Verified
+                {d.badgeVerified}
               </span>
             )}
             {property.premium && (
               <span className="flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full bg-brand-gold/20 text-brand-gold border border-brand-gold/20">
                 <Star className="size-3" />
-                Premium
+                {d.badgePremium}
               </span>
             )}
             {property.isNew && (
               <span className="text-xs font-semibold px-3 py-1 rounded-full bg-brand-blue/30 text-blue-200 border border-brand-blue/20">
-                New
+                {d.badgeNew}
               </span>
             )}
           </div>
@@ -302,10 +291,9 @@ function PropertyDetail({ propertyId }: Props) {
               {property.listedDaysAgo != null && (
                 <p className="text-xs text-white/50 mt-1 flex items-center sm:justify-end gap-1">
                   <CalendarDays className="size-3" />
-                  Listed{" "}
                   {property.listedDaysAgo === 0
-                    ? "today"
-                    : `${property.listedDaysAgo}d ago`}
+                    ? d.listedToday
+                    : d.listedDaysAgo.replace("{n}", String(property.listedDaysAgo))}
                 </p>
               )}
             </div>
@@ -316,14 +304,14 @@ function PropertyDetail({ propertyId }: Props) {
       {/* ── Key facts bar ──────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { icon: Bed, label: "Bedrooms", value: property.bedrooms ?? "–" },
-          { icon: Bath, label: "Bathrooms", value: property.bathrooms ?? "–" },
+          { icon: Bed, label: d.factBedrooms, value: property.bedrooms ?? "–" },
+          { icon: Bath, label: d.factBathrooms, value: property.bathrooms ?? "–" },
           {
             icon: Ruler,
-            label: "Area",
+            label: d.factArea,
             value: property.areaSqm ? `${property.areaSqm} m²` : "–",
           },
-          { icon: Package, label: "Type", value: property.listingType ?? "–" },
+          { icon: Package, label: d.factType, value: property.listingType ?? "–" },
         ].map(({ icon: Icon, label, value }) => (
           <Card key={label} className="card-luxury text-center">
             <CardContent className="p-4 flex flex-col items-center gap-1.5">
@@ -344,6 +332,15 @@ function PropertyDetail({ propertyId }: Props) {
         <PerformanceChart
           performance={property.performance}
           listedDaysAgo={property.listedDaysAgo}
+          labels={{
+            title: d.perfTitle,
+            since: d.perfSince,
+            viewed: d.perfViewed,
+            shared: d.perfShared,
+            saved: d.perfSaved,
+            whatsApp: d.perfWhatsApp,
+            disclaimer: d.perfDisclaimer,
+          }}
         />
       )}
 
@@ -354,16 +351,16 @@ function PropertyDetail({ propertyId }: Props) {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <MapPin className="size-4 text-brand-blue" />
-              Location
+              {d.sectionLocation}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-0">
             {[
-              { label: "Suburb", value: property.suburb ?? "–" },
-              { label: "Neighborhood", value: property.neighborhood ?? "–" },
-              { label: "City", value: property.city ?? "–" },
+              { label: d.locSuburb, value: property.suburb ?? "–" },
+              { label: d.locNeighborhood, value: property.neighborhood ?? "–" },
+              { label: d.locCity, value: property.city ?? "–" },
               {
-                label: "Zone",
+                label: d.locZone,
                 value: (property as { zone?: string }).zone ?? "–",
               },
             ].map(({ label, value }, i, arr) => (
@@ -389,7 +386,7 @@ function PropertyDetail({ propertyId }: Props) {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <User className="size-4 text-brand-gold" />
-                Listing Agent
+                {d.sectionAgent}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex items-center gap-4">
@@ -412,15 +409,15 @@ function PropertyDetail({ propertyId }: Props) {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <TrendingUp className="size-4 text-brand-gold" />
-                Pricing Details
+                {d.sectionPricing}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-0">
               {[
-                { label: "Price", value: priceDisplay + periodLabel },
-                { label: "Currency", value: property.currency ?? "–" },
+                { label: d.priceLabel, value: priceDisplay + periodLabel },
+                { label: d.currencyLabel, value: property.currency ?? "–" },
                 {
-                  label: "Transaction",
+                  label: d.transactionLabel,
                   value:
                     (property as { transaction?: string }).transaction ??
                     property.listingType ??
@@ -450,9 +447,9 @@ function PropertyDetail({ propertyId }: Props) {
               brokerLicense?: string;
             };
             const items = [
-              { label: "Reference", value: detail.reference },
-              { label: "Permit No.", value: detail.permitNumber },
-              { label: "Broker License", value: detail.brokerLicense },
+              { label: d.refLabel, value: detail.reference },
+              { label: d.permitLabel, value: detail.permitNumber },
+              { label: d.brokerLabel, value: detail.brokerLicense },
             ].filter((i) => i.value);
 
             return items.length > 0 ? (
@@ -460,7 +457,7 @@ function PropertyDetail({ propertyId }: Props) {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <BadgeCheck className="size-4 text-emerald-600" />
-                    Reference Numbers
+                    {d.sectionRefNumbers}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-0">
@@ -490,13 +487,13 @@ function PropertyDetail({ propertyId }: Props) {
       {(() => {
         const p = property as any;
         const rows = [
-          p.isFurnished !== undefined && { label: "Meublé", value: p.isFurnished ? "Oui" : "Non" },
-          p.availableFrom && { label: "Disponible à partir du", value: new Date(p.availableFrom).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) },
-          p.landmark && { label: "Point de repère", value: p.landmark },
-          p.isShortTerm && { label: "Courte durée", value: "Oui" },
-          p.pricePerNight && { label: "Prix/nuit", value: `${p.currency ?? ""} ${Number(p.pricePerNight).toLocaleString()}` },
-          p.minStayNights && { label: "Séjour min.", value: `${p.minStayNights} nuits` },
-          p.maxStayNights && { label: "Séjour max.", value: `${p.maxStayNights} nuits` },
+          p.isFurnished !== undefined && { label: d.featFurnished, value: p.isFurnished ? d.featYes : d.featNo },
+          p.availableFrom && { label: d.featAvailFrom, value: new Date(p.availableFrom).toLocaleDateString(undefined, { day: "2-digit", month: "long", year: "numeric" }) },
+          p.landmark && { label: d.featLandmark, value: p.landmark },
+          p.isShortTerm && { label: d.featShortTerm, value: d.featYes },
+          p.pricePerNight && { label: d.featPricePerNight, value: `${p.currency ?? ""} ${Number(p.pricePerNight).toLocaleString()}` },
+          p.minStayNights && { label: d.featMinStay, value: `${p.minStayNights} ${d.featNights}` },
+          p.maxStayNights && { label: d.featMaxStay, value: `${p.maxStayNights} ${d.featNights}` },
         ].filter(Boolean) as { label: string; value: string }[];
 
         const amenities: string[] = Array.isArray(p.amenities) ? p.amenities : [];
@@ -508,7 +505,7 @@ function PropertyDetail({ propertyId }: Props) {
             {rows.length > 0 && (
               <Card className="card-luxury">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold">Caractéristiques</CardTitle>
+                  <CardTitle className="text-sm font-semibold">{d.sectionFeatures}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-0">
                   {rows.map(({ label, value }, i) => (
@@ -526,7 +523,7 @@ function PropertyDetail({ propertyId }: Props) {
             {amenities.length > 0 && (
               <Card className="card-luxury">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold">Équipements ({amenities.length})</CardTitle>
+                  <CardTitle className="text-sm font-semibold">{d.sectionAmenities} ({amenities.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
@@ -549,32 +546,44 @@ function PropertyDetail({ propertyId }: Props) {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <ImageIcon className="size-4 text-brand-blue" />
-              Gallery
+              {d.sectionGallery}
               <span className="text-xs font-normal text-muted-foreground">
-                ({property.gallery.length} photo{property.gallery.length !== 1 ? "s" : ""})
+                ({property.gallery.length} {property.gallery.length !== 1 ? d.galleryPhotos : d.galleryPhoto})
               </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {property.gallery.map((url, idx) => (
-                <button
+                <div
                   key={idx}
-                  type="button"
-                  onClick={() => setLightboxUrl(url)}
-                  className="group relative aspect-video rounded-lg overflow-hidden bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                  className="group relative aspect-video rounded-lg overflow-hidden bg-muted"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={url}
-                    alt={`Property photo ${idx + 1}`}
-                    className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                    onError={(e) => {
-                      (e.currentTarget.parentElement as HTMLElement).style.display = "none";
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-brand-navy/0 group-hover:bg-brand-navy/20 transition-colors" />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setLightboxUrl(url)}
+                    className="absolute inset-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={`Property photo ${idx + 1}`}
+                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.currentTarget.closest("div[class*='group']") as HTMLElement | null)?.style.setProperty("display", "none");
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-brand-navy/0 group-hover:bg-brand-navy/20 transition-colors" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Remove photo"
+                    onClick={(e) => { e.stopPropagation(); handleRemovePhoto(url); }}
+                    className="absolute top-1.5 right-1.5 z-10 flex items-center justify-center w-6 h-6 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 focus:outline-none"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           </CardContent>
@@ -585,7 +594,7 @@ function PropertyDetail({ propertyId }: Props) {
       {(property as { description?: string }).description && (
         <Card className="card-luxury">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">Description</CardTitle>
+            <CardTitle className="text-sm font-semibold">{d.sectionDescription}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -638,20 +647,20 @@ function PropertyDetail({ propertyId }: Props) {
       <Dialog open={rejectOpen} onOpenChange={(v) => { if (!v) setRejectOpen(false); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rejeter l'annonce</DialogTitle>
+            <DialogTitle>{d.rejectDialogTitle}</DialogTitle>
             <DialogDescription>
-              Indiquez la raison du rejet. L'agent en sera informé.
+              {d.rejectDialogDesc}
             </DialogDescription>
           </DialogHeader>
           <Textarea
-            placeholder="Ex : Photos insuffisantes, prix incohérent avec le marché…"
+            placeholder={d.rejectPlaceholder}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             className="min-h-[100px]"
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectOpen(false)}>
-              Annuler
+              {d.rejectCancelBtn}
             </Button>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white"
@@ -664,7 +673,7 @@ function PropertyDetail({ propertyId }: Props) {
               }
             >
               {reject.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
-              Confirmer le rejet
+              {d.rejectConfirmBtn}
             </Button>
           </DialogFooter>
         </DialogContent>
