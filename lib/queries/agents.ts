@@ -123,3 +123,44 @@ export function useUnsuspendAgent() {
     onSuccess: () => qc.invalidateQueries({ queryKey: [AGENTS_KEY] }),
   });
 }
+
+/** Returns agents with profileComplete=true and idDocumentStatus=PENDING. */
+export function usePendingIdentityVerification() {
+  return useQuery<IdentityPendingAgent[]>({
+    queryKey: [AGENTS_KEY, "pending-identity-verification"],
+    queryFn: async () => {
+      const { data } = await api.get("/api/agents/pending-verification");
+      return Array.isArray(data) ? data : [];
+    },
+  });
+}
+
+export interface IdentityPendingAgent {
+  id: string;
+  name: string;
+  email: string | null;
+  phoneNumber: string | null;
+  photo: string | null;
+  agentType: string;
+  idDocumentUrl: string | null;
+  selfieUrl: string | null;
+  dateOfBirth: string | null;
+  residenceCommune: string | null;
+  communes: string[];
+  createdAt: string;
+  idDocumentStatus: string;
+  idDocumentRejectionReason: string | null;
+}
+
+/** Approves or rejects an agent's identity document. */
+export function useReviewAgentIdentity() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, approved, reason }: { id: string; approved: boolean; reason?: string }) =>
+      api.patch(`/api/agents/${id}/review-identity`, { approved, reason }).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [AGENTS_KEY, "pending-identity-verification"] });
+      qc.invalidateQueries({ queryKey: [AGENTS_KEY] });
+    },
+  });
+}

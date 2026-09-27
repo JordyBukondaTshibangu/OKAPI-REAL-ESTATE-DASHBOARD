@@ -17,7 +17,9 @@ import SearchInput from "../_common/molecules/search-input";
 import AddAgent from "./dialogs/create-agent/add-agent";
 import DeleteAgentDialog from "./dialogs/delete-agent";
 import PendingAgents from "./pending";
+import AgentsVerification from "./agents-verification";
 import { useTranslation } from "@/hooks/use-translation";
+import { usePendingIdentityVerification } from "@/lib/queries/agents";
 
 const SEARCH_OPTIONS = ["Name", "All Fields"];
 
@@ -41,6 +43,10 @@ function Agents() {
   // Fetch pending count for the badge
   const { data: pendingData } = useAgents({ page: 1, pageSize: 1, pending: true });
   const pendingCount = pendingData?.totalCount ?? 0;
+
+  // Fetch identity verification count for badge
+  const { data: pendingIdentity = [] } = usePendingIdentityVerification();
+  const verificationCount = pendingIdentity.length;
 
   const queryParams = { ...params, page: currentPage, pageSize: PAGE_SIZE };
   const { data, isLoading } = useAgents(queryParams);
@@ -136,6 +142,14 @@ function Agents() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="verification" className="relative">
+            Vérification
+            {verificationCount > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-amber-500 text-white">
+                {verificationCount > 9 ? "9+" : verificationCount}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="active">
@@ -172,6 +186,10 @@ function Agents() {
 
         <TabsContent value="pending">
           <PendingAgents />
+        </TabsContent>
+
+        <TabsContent value="verification">
+          <AgentsVerification />
         </TabsContent>
       </Tabs>
 

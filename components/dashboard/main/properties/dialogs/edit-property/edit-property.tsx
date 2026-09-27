@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { formatPropertyTitle, stripEmojis } from "@/lib/formatTitle";
 import { Moon, UploadCloud, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -249,7 +250,12 @@ function EditProperty({ property, open, setOpen }: EditPropertyProps) {
                     render={({ field }) => (
                       <FormItem>
                         <Label>Title <span className="text-destructive">*</span></Label>
-                        <Input {...field} placeholder="Luxury 3-Bed Apartment" />
+                        <Input
+                          {...field}
+                          placeholder="Luxury 3-Bed Apartment"
+                          onChange={(e) => field.onChange(stripEmojis(e.target.value))}
+                          onBlur={() => { field.onChange(formatPropertyTitle(field.value ?? "")); field.onBlur(); }}
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
