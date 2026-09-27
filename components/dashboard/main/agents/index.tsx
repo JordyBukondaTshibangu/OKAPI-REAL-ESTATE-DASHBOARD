@@ -37,11 +37,18 @@ function Agents() {
     setParams,
   } = useAgentStore();
 
-  const currentPage = Math.max(1, Number(urlSearchParams.get("queryPage") ?? "1"));
+  const currentPage = Math.max(
+    1,
+    Number(urlSearchParams.get("queryPage") ?? "1"),
+  );
   const activeTab = urlSearchParams.get("tab") ?? "active";
 
   // Fetch pending count for the badge
-  const { data: pendingData } = useAgents({ page: 1, pageSize: 1, pending: true });
+  const { data: pendingData } = useAgents({
+    page: 1,
+    pageSize: 1,
+    pending: true,
+  });
   const pendingCount = pendingData?.totalCount ?? 0;
 
   // Fetch identity verification count for badge
@@ -52,8 +59,10 @@ function Agents() {
   const { data, isLoading } = useAgents(queryParams);
 
   const agents = Array.isArray(data?.data) ? data.data : [];
-  const totalPages = typeof data?.totalPages === "number" ? data.totalPages : null;
-  const totalCount = typeof data?.totalCount === "number" ? data.totalCount : undefined;
+  const totalPages =
+    typeof data?.totalPages === "number" ? data.totalPages : null;
+  const totalCount =
+    typeof data?.totalCount === "number" ? data.totalCount : undefined;
 
   const handlePageChange = useCallback(
     (page: number) => {
@@ -76,7 +85,11 @@ function Agents() {
 
   const handleSortingChange = useCallback(
     (key: string, dir: "asc" | "desc") => {
-      setParams({ ...params, sortBy: key || undefined, sortOrder: key ? dir : undefined });
+      setParams({
+        ...params,
+        sortBy: key || undefined,
+        sortOrder: key ? dir : undefined,
+      });
       if (currentPage !== 1) {
         const next = new URLSearchParams(urlSearchParams.toString());
         next.set("queryPage", "1");
@@ -107,8 +120,12 @@ function Agents() {
           <div className="flex items-center gap-3">
             <span className="w-1 h-6 bg-brand-blue rounded-full" />
             <div>
-              <h1 className="text-lg font-semibold text-foreground">{t.agents.title}</h1>
-              <p className="text-xs text-muted-foreground">{t.agents.subtitle}</p>
+              <h1 className="text-lg font-semibold text-foreground">
+                {t.agents.title}
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                {t.agents.subtitle}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -120,10 +137,15 @@ function Agents() {
                   type={SEARCH_TYPE.AGENT}
                   options={SEARCH_OPTIONS}
                   setCurrentPage={(page: number | ((prev: number) => number)) =>
-                    handlePageChange(typeof page === "function" ? page(currentPage) : page)
+                    handlePageChange(
+                      typeof page === "function" ? page(currentPage) : page,
+                    )
                   }
                 />
-                <Button onClick={() => toggleDialog("addAgent", true)} className="h-9 px-4">
+                <Button
+                  onClick={() => toggleDialog("addAgent", true)}
+                  className="h-9 px-4"
+                >
                   <CirclePlus />
                   {t.agents.addAgent}
                 </Button>
@@ -137,7 +159,7 @@ function Agents() {
           <TabsTrigger value="pending" className="relative">
             {t.agents.tabPending}
             {pendingCount > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-red-500 text-white">
+              <span className="pointer-events-none ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-red-500 text-white">
                 {pendingCount > 9 ? "9+" : pendingCount}
               </span>
             )}
@@ -145,7 +167,7 @@ function Agents() {
           <TabsTrigger value="verification" className="relative">
             Vérification
             {verificationCount > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-amber-500 text-white">
+              <span className="pointer-events-none ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-amber-500 text-white">
                 {verificationCount > 9 ? "9+" : verificationCount}
               </span>
             )}
@@ -174,7 +196,9 @@ function Agents() {
                 onSortChange={handleSortingChange}
                 setSelectedAgency={setSelectedAgent}
                 emptyMessage={
-                  isSearchActive && hasNoResults ? t.agents.noResults : undefined
+                  isSearchActive && hasNoResults
+                    ? t.agents.noResults
+                    : undefined
                 }
                 toggleDialog={(key: AgentDialogType, value: boolean) =>
                   toggleDialog(key, value)
