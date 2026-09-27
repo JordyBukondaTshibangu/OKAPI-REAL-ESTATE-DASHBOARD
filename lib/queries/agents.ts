@@ -132,6 +132,8 @@ export function usePendingIdentityVerification() {
       const { data } = await api.get("/api/agents/pending-verification");
       return Array.isArray(data) ? data : [];
     },
+    refetchInterval: 30_000,       // poll every 30 s so new submissions appear automatically
+    refetchIntervalInBackground: false, // pause polling when tab is not focused
   });
 }
 

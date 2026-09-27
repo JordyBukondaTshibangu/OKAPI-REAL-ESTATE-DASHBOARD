@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { RefreshCw } from "lucide-react";
 import {
   usePendingIdentityVerification,
   useReviewAgentIdentity,
@@ -27,7 +28,7 @@ function formatDate(iso: string | null) {
 }
 
 export default function AgentsVerification() {
-  const { data: agents = [], isLoading } = usePendingIdentityVerification();
+  const { data: agents = [], isLoading, refetch, isFetching } = usePendingIdentityVerification();
   const review = useReviewAgentIdentity();
 
   const [selected, setSelected] = useState<IdentityPendingAgent | null>(null);
@@ -74,18 +75,30 @@ export default function AgentsVerification() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 mb-2">
-        <span className="w-1 h-6 bg-brand-blue rounded-full" />
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">
-            Vérification d'identité
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {agents.length === 0
-              ? "Aucun dossier en attente"
-              : `${agents.length} dossier${agents.length > 1 ? "s" : ""} en attente`}
-          </p>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <span className="w-1 h-6 bg-brand-blue rounded-full" />
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              Vérification d'identité
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {agents.length === 0
+                ? "Aucun dossier en attente"
+                : `${agents.length} dossier${agents.length > 1 ? "s" : ""} en attente`}
+            </p>
+          </div>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="gap-1.5 text-xs"
+        >
+          <RefreshCw className={`w-3 h-3 ${isFetching ? "animate-spin" : ""}`} />
+          Actualiser
+        </Button>
       </div>
 
       {agents.length === 0 ? (
