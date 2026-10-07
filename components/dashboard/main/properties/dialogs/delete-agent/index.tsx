@@ -38,8 +38,10 @@ function DeletePropertyDialog({ open, property, setOpen, onClose }: DeleteProper
       toast.success(f.toast.deleted.replace("{name}", property.title));
       setOpen(false);
       onClose?.();
-    } catch {
-      toast.error(f.toast.deleteFailed);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? f.toast.deleteFailed);
     }
   }, [property, deleteProperty, setOpen, onClose, f]);
 
@@ -51,7 +53,7 @@ function DeletePropertyDialog({ open, property, setOpen, onClose }: DeleteProper
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader className="gap-4">
-              <DialogTitle>Delete {property?.title}?</DialogTitle>
+              <DialogTitle>Supprimer &quot;{property?.title}&quot; ?</DialogTitle>
               <DialogDescription className="text-muted-foreground text-sm leading-normal">
                 {f.delete.description}
               </DialogDescription>

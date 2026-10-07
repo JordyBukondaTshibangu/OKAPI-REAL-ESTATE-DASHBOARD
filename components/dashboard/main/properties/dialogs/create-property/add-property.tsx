@@ -151,7 +151,7 @@ const IMAGE_GRADIENT_OPTIONS = [
 
 const CATEGORIES = [
   "apartment", "villa", "townhouse", "studio", "duplex",
-  "penthouse", "land", "office", "warehouse", "retail",
+  "penthouse", "house", "land", "commercial", "office", "warehouse", "retail",
 ] as const;
 
 const ICON_TYPES  = ["building", "home", "land", "office", "store", "warehouse"] as const;
@@ -676,7 +676,7 @@ function AddProperty({ open, setToggle, resetCurrentPage }: AddPropertyProps) {
                         name="neighborhood"
                         render={({ field }) => (
                           <FormItem>
-                            <Label>{fp.labels.neighborhood} <span className="text-destructive">*</span></Label>
+                            <Label>{fp.labels.neighborhood}</Label>
                             <Input {...field} placeholder="Lingwala" />
                             <FormMessage />
                           </FormItem>

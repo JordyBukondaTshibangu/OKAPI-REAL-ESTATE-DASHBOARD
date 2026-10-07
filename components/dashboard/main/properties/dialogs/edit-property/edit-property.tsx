@@ -59,7 +59,7 @@ function toGalleryArray(val: unknown): string[] {
 const LISTING_TYPES = ["rent", "sale", "commercial"] as const;
 const CATEGORIES = [
   "apartment", "villa", "townhouse", "studio", "duplex",
-  "penthouse", "land", "office", "warehouse", "retail",
+  "penthouse", "house", "land", "commercial", "office", "warehouse", "retail",
 ] as const;
 const PERIODS = ["monthly", "yearly"] as const;
 

@@ -194,8 +194,19 @@ export type PropertyPerformance = {
   whatsappClicks: number;
 };
 
+export type ListingStatus =
+  | "DRAFT"
+  | "PENDING"
+  | "LIVE"
+  | "HIDDEN"
+  | "REJECTED"
+  | "EXPIRED"
+  | "DELETED_BY_AGENT"
+  | "DELETED_BY_ADMIN";
+
 export type Property = {
   id: string;
+  status?: ListingStatus;
   listingType: ListingType;
   category: PropertyCategory;
   price: number;
