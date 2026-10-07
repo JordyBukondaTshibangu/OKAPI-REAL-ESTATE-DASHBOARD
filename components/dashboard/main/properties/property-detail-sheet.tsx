@@ -22,7 +22,8 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 import { Loading } from "@/components/common/loading";
 import { Badge } from "@/components/ui/badge";
@@ -117,6 +118,18 @@ export function PropertyDetailSheet({ propertyId, onClose, onApproved }: Props) 
   const amenities: string[] = Array.isArray(p?.amenities) ? p.amenities : [];
 
   const PropertyIcon = ICON_MAP[p?.iconType ?? "home"] ?? Home;
+
+  // Keyboard navigation for lightbox
+  const handleLightboxKey = useCallback((e: KeyboardEvent) => {
+    if (lightboxIdx === null) return;
+    if (e.key === "Escape") { setLightboxIdx(null); return; }
+    if (e.key === "ArrowRight") setLightboxIdx((i) => (i !== null && i < gallery.length - 1 ? i + 1 : i));
+    if (e.key === "ArrowLeft")  setLightboxIdx((i) => (i !== null && i > 0 ? i - 1 : i));
+  }, [lightboxIdx, gallery.length]);
+  useEffect(() => {
+    window.addEventListener("keydown", handleLightboxKey);
+    return () => window.removeEventListener("keydown", handleLightboxKey);
+  }, [handleLightboxKey]);
 
   return (
     <>
@@ -375,12 +388,12 @@ export function PropertyDetailSheet({ propertyId, onClose, onApproved }: Props) 
         </SheetContent>
       </Sheet>
 
-      {/* Lightbox */}
-      {lightboxIdx !== null && gallery.length > 0 && (
+      {/* Lightbox — rendered via portal so fixed positioning escapes the Sheet stacking context */}
+      {lightboxIdx !== null && gallery.length > 0 && createPortal(
         <div
           role="dialog"
           aria-modal
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90"
           onClick={() => setLightboxIdx(null)}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -401,25 +414,26 @@ export function PropertyDetailSheet({ propertyId, onClose, onApproved }: Props) 
           {lightboxIdx > 0 && (
             <button
               type="button"
-              className="absolute left-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+              className="absolute left-4 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white"
               onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1); }}
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-6 h-6" />
             </button>
           )}
           {lightboxIdx < gallery.length - 1 && (
             <button
               type="button"
-              className="absolute right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+              className="absolute right-4 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white"
               onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1); }}
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-6 h-6" />
             </button>
           )}
-          <div className="absolute bottom-4 text-white/60 text-sm">
+          <div className="absolute bottom-4 text-white/60 text-sm select-none">
             {lightboxIdx + 1} / {gallery.length}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Reject dialog */}
