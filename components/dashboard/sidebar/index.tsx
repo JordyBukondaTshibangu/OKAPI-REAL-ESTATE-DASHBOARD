@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Rocket,
   Settings,
+  Star,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -52,6 +53,7 @@ export default function SidebarLayout() {
       ],
     },
     { title: t.nav.boosts, url: "/boosts", icon: Rocket },
+    { title: t.nav.reviews, url: "/reviews", icon: Star },
     { title: t.nav.reports, url: "/reports", icon: Flag },
     {
       title: t.nav.subscriptions,
